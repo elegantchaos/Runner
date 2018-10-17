@@ -9,12 +9,12 @@ import Foundation
 public class Runner {
     var environment: [String:String]
     let executable: URL
-    var cwd: URL?
+    public var cwd: URL?
 
     public struct Result {
-        let status: Int32
-        let stdout: String
-        let stderr: String
+        public let status: Int32
+        public let stdout: String
+        public let stderr: String
     }
 
     public init(for executable: URL, cwd: URL? = nil, environment: [String:String] = ProcessInfo.processInfo.environment) {
