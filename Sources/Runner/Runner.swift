@@ -6,18 +6,18 @@
 
 import Foundation
 
-class Runner {
+public class Runner {
     var environment: [String:String]
     let executable: URL
     var cwd: URL?
 
-    struct Result {
+    public struct Result {
         let status: Int32
         let stdout: String
         let stderr: String
     }
 
-    init(for executable: URL, cwd: URL? = nil, environment: [String:String] = ProcessInfo.processInfo.environment) {
+    public init(for executable: URL, cwd: URL? = nil, environment: [String:String] = ProcessInfo.processInfo.environment) {
         self.executable = executable
         self.environment = environment
         self.cwd = cwd
@@ -28,7 +28,7 @@ class Runner {
      Control is transferred to the launched process, and this function doesn't return.
      */
 
-    func exec(arguments: [String] = []) {
+    public func exec(arguments: [String] = []) {
         let process = Process()
         if #available(macOS 10.13, *) {
             if let cwd = cwd {
@@ -50,7 +50,7 @@ class Runner {
      Waits for the process to exit and returns the captured output plus the exit status.
      */
 
-    func sync(arguments: [String] = []) throws -> Result {
+    public func sync(arguments: [String] = []) throws -> Result {
         let pipe = Pipe()
         let handle = pipe.fileHandleForReading
         let errPipe = Pipe()
