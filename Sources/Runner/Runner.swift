@@ -6,7 +6,7 @@
 
 import Foundation
 
-public class Runner {
+open class Runner {
     var environment: [String:String]
     let executable: URL
     public var cwd: URL?
