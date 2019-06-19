@@ -23,3 +23,14 @@ let _ = runner.sync(["blah"])
 // transfer execution to the subprocess
 runner.exec(url)
 ```
+
+## Path Lookup
+
+Rather than supplying the path to the executable explicitly,
+you can instead supply just a name, and have it looked up using
+the $PATH environment variable.
+
+```swift
+
+let runner = Runner(command: "name")
+```
