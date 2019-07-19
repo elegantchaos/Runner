@@ -79,7 +79,7 @@ open class Runner {
         process.arguments = arguments
         
         if passthrough {
-            process.standardInput = FileHandle.standardInput
+            // TODO: can we turn off input buffering somehow?
         } else {
             process.standardOutput = Pipe()
             process.standardOutput = Pipe()
