@@ -65,11 +65,7 @@ open class Runner {
      Waits for the process to exit and returns the captured output plus the exit status.
      */
 
-    public func sync(arguments: [String] = []) throws -> Result {
-        let pipe = Pipe()
-        let handle = pipe.fileHandleForReading
-        let errPipe = Pipe()
-        let errHandle = errPipe.fileHandleForReading
+    public func sync(arguments: [String] = [], passthrough: Bool = false) throws -> Result {
 
         let process = Process()
 
@@ -81,18 +77,42 @@ open class Runner {
         }
 
         process.arguments = arguments
-        process.standardOutput = pipe
-        process.standardError = errPipe
+        
+        if passthrough {
+            process.standardInput = FileHandle.standardInput
+        } else {
+            process.standardOutput = Pipe()
+            process.standardOutput = Pipe()
+        }
+        
         process.environment = environment
         process.launch()
-        let data = handle.readDataToEndOfFile()
-        let errData = errHandle.readDataToEndOfFile()
         process.waitUntilExit()
-        let stdout = String(data:data, encoding:String.Encoding.utf8) ?? ""
-        let stderr = String(data:errData, encoding:String.Encoding.utf8) ?? ""
+
+        var stdout: String = ""
+        var stderr: String = ""
+        
+        if !passthrough {
+            stdout = captureString(from: process.standardOutput)
+            stderr = captureString(from: process.standardError)
+        }
+        
         return Result(status: process.terminationStatus, stdout: stdout, stderr: stderr)
     }
 
+    
+    /// Extract text from an output pipe
+    /// - Parameter source: the pipe
+    func captureString(from pipe: Any?) -> String {
+        if let pipe = pipe as? Pipe {
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            if let string = String(data: data, encoding: .utf8) {
+                return string
+            }
+        }
+        return ""
+    }
+        
   /**
     Find a command, using the $PATH environment variable.
     Returns nil if the command couldn't be located.
