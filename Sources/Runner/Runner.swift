@@ -82,7 +82,7 @@ open class Runner {
             // TODO: can we turn off input buffering somehow?
         } else {
             process.standardOutput = Pipe()
-            process.standardOutput = Pipe()
+            process.standardError = Pipe()
         }
         
         process.environment = environment
