@@ -2,14 +2,10 @@ import XCTest
 @testable import Runner
 
 final class RunnerTests: XCTestCase {
-    func testExample() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct
-        // results.
-        XCTAssertEqual(Runner().text, "Hello, World!")
+    func testSync() {
+        let runner = Runner(for: URL(fileURLWithPath: "/usr/bin/which"))
+        let result = try! runner.sync(arguments: ["ls"])
+        XCTAssertEqual(result.status, 0)
+        XCTAssertEqual(result.stdout, "/bin/ls\n")
     }
-
-    static var allTests = [
-        ("testExample", testExample),
-    ]
 }

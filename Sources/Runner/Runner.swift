@@ -43,18 +43,21 @@ open class Runner {
      Control is transferred to the launched process, and this function doesn't return.
      */
 
-    public func exec(arguments: [String] = []) {
+    public func exec(arguments: [String] = []) -> Never {
         let process = Process()
-        if #available(macOS 10.13, *) {
-            if let cwd = cwd {
-                process.currentDirectoryURL = cwd
-            }
-
-            process.executableURL = executable
+        if let cwd = cwd {
+            process.currentDirectoryURL = cwd
         }
+
+        process.executableURL = executable
         process.arguments = arguments
         process.environment = environment
-        process.launch()
+        do {
+            try process.run()
+        } catch {
+            fatalError("Failed to launch \(executable).\n\n\(error)")
+        }
+
         process.waitUntilExit()
         exit(process.terminationStatus)
     }
@@ -68,14 +71,10 @@ open class Runner {
     public func sync(arguments: [String] = [], passthrough: Bool = false) throws -> Result {
 
         let process = Process()
-
-        if #available(macOS 10.13, *) {
-            if let cwd = cwd {
-                process.currentDirectoryURL = cwd
-            }
-            process.executableURL = executable
+        if let cwd = cwd {
+            process.currentDirectoryURL = cwd
         }
-
+        process.executableURL = executable
         process.arguments = arguments
         
         if passthrough {
@@ -86,7 +85,7 @@ open class Runner {
         }
         
         process.environment = environment
-        process.launch()
+        try process.run()
         process.waitUntilExit()
 
         var stdout: String = ""
