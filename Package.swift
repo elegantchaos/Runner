@@ -13,6 +13,7 @@ let package = Package(
             targets: ["Runner"]),
     ],
     dependencies: [
+        .package(url: "https://github.com/elegantchaos/XCTestExtensions.git", from: "1.0.0")
     ],
     targets: [
         .target(
@@ -20,6 +21,6 @@ let package = Package(
             dependencies: []),
         .testTarget(
             name: "RunnerTests",
-            dependencies: ["Runner"]),
+            dependencies: ["Runner", "XCTestExtensions"]),
     ]
 )

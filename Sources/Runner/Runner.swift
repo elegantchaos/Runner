@@ -69,7 +69,42 @@ open class Runner {
      */
 
     public func sync(arguments: [String] = [], passthrough: Bool = false) throws -> Result {
+        class PipeInfo {
+            let pipe: Pipe
+            var handle: FileHandle?
+            var text: String = ""
+            
+            init() {
+                pipe = Pipe()
+                handle = pipe.fileHandleForReading
+                handle?.readabilityHandler = { handle in
+                    if let string = String(data: handle.availableData, encoding: .utf8) {
+                        if string.count > 0 {
+                            self.text.append(string)
+                            print("got: \(string)")
+                        }
+                    }
+                }
+            }
+            
+            func finish() -> String {
+                if let handle = handle {
+                    handle.readabilityHandler = nil
+                    if let string = String(data: handle.readDataToEndOfFile(), encoding: .utf8) {
+                        if string.count > 0 {
+                            self.text.append(string)
+                            print("finished with: \(string)")
+                        }
+                    }
+                }
+                
+                return text
+            }
+        }
 
+        var stdout: PipeInfo?
+        var stderr: PipeInfo?
+        
         let process = Process()
         if let cwd = cwd {
             process.currentDirectoryURL = cwd
@@ -80,23 +115,21 @@ open class Runner {
         if passthrough {
             // TODO: can we turn off input buffering somehow?
         } else {
-            process.standardOutput = Pipe()
-            process.standardError = Pipe()
+            let outInfo = PipeInfo()
+            process.standardOutput = outInfo.pipe
+            stdout = outInfo
+            
+            let errInfo = PipeInfo()
+            process.standardError = errInfo.pipe
+            stderr = errInfo
         }
         
         process.environment = environment
         try process.run()
         process.waitUntilExit()
 
-        var stdout: String = ""
-        var stderr: String = ""
         
-        if !passthrough {
-            stdout = captureString(from: process.standardOutput)
-            stderr = captureString(from: process.standardError)
-        }
-        
-        return Result(status: process.terminationStatus, stdout: stdout, stderr: stderr)
+        return Result(status: process.terminationStatus, stdout: stdout?.finish() ?? "", stderr: stderr?.finish() ?? "")
     }
 
     
