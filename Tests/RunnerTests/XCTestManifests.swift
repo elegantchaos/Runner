@@ -6,7 +6,9 @@ extension RunnerTests {
     //   `swift test --generate-linuxmain`
     // to regenerate.
     static let __allTests__RunnerTests = [
-        ("testSync", testSync),
+        ("testLongRunning", testLongRunning),
+        ("testSyncNonZeroStatus", testSyncNonZeroStatus),
+        ("testSyncZeroStatus", testSyncZeroStatus),
     ]
 }
 
