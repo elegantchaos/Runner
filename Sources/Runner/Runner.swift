@@ -11,6 +11,12 @@ open class Runner {
     let executable: URL
     public var cwd: URL?
 
+    public enum Mode {
+        case passthrough
+        case capture
+        case tee
+    }
+    
     public struct Result {
         public let status: Int32
         public let stdout: String
@@ -68,17 +74,21 @@ open class Runner {
      Waits for the process to exit and returns the captured output plus the exit status.
      */
 
-    public func sync(arguments: [String] = [], passthrough: Bool = false) throws -> Result {
+    public func sync(arguments: [String] = [], stdoutMode: Mode = .capture, stderrMode: Mode = .capture) throws -> Result {
         class PipeInfo {
             let pipe: Pipe
             var handle: FileHandle?
+            var tee: FileHandle?
             var text: String = ""
             
-            init() {
+            init(tee teeHandle: FileHandle? = nil) {
                 pipe = Pipe()
+                tee = teeHandle
                 handle = pipe.fileHandleForReading
                 handle?.readabilityHandler = { handle in
-                    if let string = String(data: handle.availableData, encoding: .utf8) {
+                    let data = handle.availableData
+                    teeHandle?.write(data)
+                    if let string = String(data: data, encoding: .utf8) {
                         if string.count > 0 {
                             self.text.append(string)
                             print("got: \(string)")
@@ -90,7 +100,9 @@ open class Runner {
             func finish() -> String {
                 if let handle = handle {
                     handle.readabilityHandler = nil
-                    if let string = String(data: handle.readDataToEndOfFile(), encoding: .utf8) {
+                    let data = handle.readDataToEndOfFile()
+                    tee?.write(data)
+                    if let string = String(data: data, encoding: .utf8) {
                         if string.count > 0 {
                             self.text.append(string)
                             print("finished with: \(string)")
@@ -112,16 +124,28 @@ open class Runner {
         process.executableURL = executable
         process.arguments = arguments
         
-        if passthrough {
-            // TODO: can we turn off input buffering somehow?
-        } else {
-            let outInfo = PipeInfo()
-            process.standardOutput = outInfo.pipe
-            stdout = outInfo
-            
-            let errInfo = PipeInfo()
-            process.standardError = errInfo.pipe
-            stderr = errInfo
+        switch stdoutMode {
+            case .passthrough: break
+            case .capture:
+                let outInfo = PipeInfo()
+                process.standardOutput = outInfo.pipe
+                stdout = outInfo
+            case .tee:
+                let outInfo = PipeInfo(tee: FileHandle.standardOutput)
+                process.standardOutput = outInfo.pipe
+                stdout = outInfo
+        }
+        
+        switch stderrMode {
+            case .passthrough: break
+            case .capture:
+                let errInfo = PipeInfo()
+                process.standardError = errInfo.pipe
+                stderr = errInfo
+            case .tee:
+                let errInfo = PipeInfo(tee: FileHandle.standardError)
+                process.standardError = errInfo.pipe
+                stderr = errInfo
         }
         
         process.environment = environment
