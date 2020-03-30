@@ -91,7 +91,6 @@ open class Runner {
                     if let string = String(data: data, encoding: .utf8) {
                         if string.count > 0 {
                             self.text.append(string)
-                            print("got: \(string)")
                         }
                     }
                 }
@@ -105,7 +104,6 @@ open class Runner {
                     if let string = String(data: data, encoding: .utf8) {
                         if string.count > 0 {
                             self.text.append(string)
-                            print("finished with: \(string)")
                         }
                     }
                 }
