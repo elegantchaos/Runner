@@ -29,4 +29,22 @@ final class RunnerTests: XCTestCase {
         XCTAssertEqual(result.status, 0)
         XCTAssertEqual(result.stdout, "hello\ngoodbye")
     }
+    
+    func testTeeMode() {
+        let url = testURL(named: "zero-status", withExtension: "sh")
+        let runner = Runner(for: url)
+        let result = try! runner.sync(stdoutMode: .tee, stderrMode: .tee)
+        XCTAssertEqual(result.status, 0)
+        XCTAssertEqual(result.stdout, "stdout")
+        XCTAssertEqual(result.stderr, "stderr")
+    }
+
+    func testPassthroughMode() {
+        let url = testURL(named: "zero-status", withExtension: "sh")
+        let runner = Runner(for: url)
+        let result = try! runner.sync(stdoutMode: .passthrough, stderrMode: .passthrough)
+        XCTAssertEqual(result.status, 0)
+        XCTAssertEqual(result.stdout, "")
+        XCTAssertEqual(result.stderr, "")
+    }
 }
