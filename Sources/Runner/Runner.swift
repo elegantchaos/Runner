@@ -17,7 +17,7 @@ open class Runner {
         case passthrough
         case capture
         case tee
-        case callback(block: PipeCallback)
+        case callback(_ block: PipeCallback)
     }
     
     public struct Result {
@@ -73,21 +73,25 @@ open class Runner {
 
 
     public class PipeInfo {
+        class Buffer {
+            var text: String = ""
+        }
+        
         let pipe: Pipe
-        let callback: PipeCallback
+        var callback: PipeCallback
         var handle: FileHandle?
         var tee: FileHandle?
-        var text: String
+        var buffer: Buffer
         
         init(tee teeHandle: FileHandle? = nil, callback: PipeCallback? = nil) {
-            var buffer = ""
+            let buffer = Buffer()
             
             self.pipe = Pipe()
             self.tee = teeHandle
             self.handle = pipe.fileHandleForReading
-            self.text = buffer
-            self.callback = callback ?? { buffer.append($0) }
-            
+            self.buffer = buffer
+            self.callback = callback ?? { buffer.text.append($0) }
+
             handle?.readabilityHandler = { handle in
                 let data = handle.availableData
                 teeHandle?.write(data)
@@ -111,7 +115,7 @@ open class Runner {
                 }
             }
             
-            return text
+            return buffer.text
         }
     }
 

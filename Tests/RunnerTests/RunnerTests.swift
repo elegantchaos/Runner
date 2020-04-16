@@ -47,4 +47,16 @@ final class RunnerTests: XCTestCase {
         XCTAssertEqual(result.stdout, "")
         XCTAssertEqual(result.stderr, "")
     }
+
+    func testCallbackMode() {
+        var buffer = ""
+        let url = testURL(named: "zero-status", withExtension: "sh")
+        let runner = Runner(for: url)
+        let result = try! runner.sync(stdoutMode: .callback({ buffer.append($0) }), stderrMode: .callback({ buffer.append($0) }))
+        XCTAssertEqual(result.status, 0)
+        XCTAssertEqual(buffer, "stdout\nstderr")
+        XCTAssertEqual(result.stdout, "")
+        XCTAssertEqual(result.stderr, "")
+    }
+
 }
