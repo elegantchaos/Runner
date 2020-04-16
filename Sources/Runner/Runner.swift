@@ -7,6 +7,8 @@
 import Foundation
 
 open class Runner {
+    public typealias PipeCallback = (String) -> Void
+    
     var environment: [String:String]
     let executable: URL
     public var cwd: URL?
@@ -15,6 +17,7 @@ open class Runner {
         case passthrough
         case capture
         case tee
+        case callback(block: PipeCallback)
     }
     
     public struct Result {
@@ -69,51 +72,84 @@ open class Runner {
     }
 
 
+    public class PipeInfo {
+        let pipe: Pipe
+        let callback: PipeCallback
+        var handle: FileHandle?
+        var tee: FileHandle?
+        var text: String
+        
+        init(tee teeHandle: FileHandle? = nil, callback: PipeCallback? = nil) {
+            var buffer = ""
+            
+            self.pipe = Pipe()
+            self.tee = teeHandle
+            self.handle = pipe.fileHandleForReading
+            self.text = buffer
+            self.callback = callback ?? { buffer.append($0) }
+            
+            handle?.readabilityHandler = { handle in
+                let data = handle.availableData
+                teeHandle?.write(data)
+                if let string = String(data: data, encoding: .utf8) {
+                    if string.count > 0 {
+                        self.callback(string)
+                    }
+                }
+            }
+        }
+        
+        func finish() -> String {
+            if let handle = handle {
+                handle.readabilityHandler = nil
+                let data = handle.readDataToEndOfFile()
+                tee?.write(data)
+                if let string = String(data: data, encoding: .utf8) {
+                    if string.count > 0 {
+                        self.callback(string)
+                    }
+                }
+            }
+            
+            return text
+        }
+    }
+
     /**
      Invoke a command and some optional arguments synchronously.
      Waits for the process to exit and returns the captured output plus the exit status.
      */
 
     public func sync(arguments: [String] = [], stdoutMode: Mode = .capture, stderrMode: Mode = .capture) throws -> Result {
-        class PipeInfo {
-            let pipe: Pipe
-            var handle: FileHandle?
-            var tee: FileHandle?
-            var text: String = ""
-            
-            init(tee teeHandle: FileHandle? = nil) {
-                pipe = Pipe()
-                tee = teeHandle
-                handle = pipe.fileHandleForReading
-                handle?.readabilityHandler = { handle in
-                    let data = handle.availableData
-                    teeHandle?.write(data)
-                    if let string = String(data: data, encoding: .utf8) {
-                        if string.count > 0 {
-                            self.text.append(string)
-                        }
-                    }
-                }
-            }
-            
-            func finish() -> String {
-                if let handle = handle {
-                    handle.readabilityHandler = nil
-                    let data = handle.readDataToEndOfFile()
-                    tee?.write(data)
-                    if let string = String(data: data, encoding: .utf8) {
-                        if string.count > 0 {
-                            self.text.append(string)
-                        }
-                    }
-                }
-                
-                return text
-            }
+        let process = Process()
+        if let cwd = cwd {
+            process.currentDirectoryURL = cwd
         }
+        process.executableURL = executable
+        process.arguments = arguments
+        process.environment = environment
 
-        var stdout: PipeInfo?
-        var stderr: PipeInfo?
+        let stdout = info(for: stdoutMode, pipe: &process.standardOutput)
+        let stderr = info(for: stderrMode, pipe: &process.standardError)
+        
+        try process.run()
+        process.waitUntilExit()
+        
+        return Result(status: process.terminationStatus, stdout: stdout?.finish() ?? "", stderr: stderr?.finish() ?? "")
+    }
+
+    public struct RunningProcess {
+        let stdout: PipeInfo?
+        let stderr: PipeInfo?
+        let process: Process
+    }
+
+    /**
+     Invoke a command and some optional arguments asynchronously.
+     Waits for the process to exit and returns the captured output plus the exit status.
+     */
+
+    public func async(arguments: [String] = [], stdoutMode: Mode = .capture, stderrMode: Mode = .capture) throws -> RunningProcess {
         
         let process = Process()
         if let cwd = cwd {
@@ -121,39 +157,34 @@ open class Runner {
         }
         process.executableURL = executable
         process.arguments = arguments
-        
-        switch stdoutMode {
-            case .passthrough: break
-            case .capture:
-                let outInfo = PipeInfo()
-                process.standardOutput = outInfo.pipe
-                stdout = outInfo
-            case .tee:
-                let outInfo = PipeInfo(tee: FileHandle.standardOutput)
-                process.standardOutput = outInfo.pipe
-                stdout = outInfo
-        }
-        
-        switch stderrMode {
-            case .passthrough: break
-            case .capture:
-                let errInfo = PipeInfo()
-                process.standardError = errInfo.pipe
-                stderr = errInfo
-            case .tee:
-                let errInfo = PipeInfo(tee: FileHandle.standardError)
-                process.standardError = errInfo.pipe
-                stderr = errInfo
-        }
-        
         process.environment = environment
-        try process.run()
-        process.waitUntilExit()
 
+        let stdout = info(for: stdoutMode, pipe: &process.standardOutput)
+        let stderr = info(for: stderrMode, pipe: &process.standardError)
         
-        return Result(status: process.terminationStatus, stdout: stdout?.finish() ?? "", stderr: stderr?.finish() ?? "")
+        try process.run()
+        return RunningProcess(stdout: stdout, stderr: stderr, process: process)
     }
 
+    func info(for mode: Mode, pipe: inout Any?) -> PipeInfo? {
+        switch mode {
+            case .passthrough:
+                return nil
+            case .capture:
+                let outInfo = PipeInfo()
+                pipe = outInfo.pipe
+                return outInfo
+            case .tee:
+                let outInfo = PipeInfo(tee: FileHandle.standardOutput)
+                pipe = outInfo.pipe
+                return outInfo
+            case .callback(let block):
+                let outInfo = PipeInfo(callback: block)
+                pipe = outInfo.pipe
+                return outInfo
+
+        }
+    }
     
     /// Extract text from an output pipe
     /// - Parameter source: the pipe
