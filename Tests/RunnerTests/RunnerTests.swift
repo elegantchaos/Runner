@@ -49,12 +49,14 @@ final class RunnerTests: XCTestCase {
     }
 
     func testCallbackMode() {
-        var buffer = ""
+        var stdout = ""
+        var stderr = ""
         let url = testURL(named: "zero-status", withExtension: "sh")
         let runner = Runner(for: url)
-        let result = try! runner.sync(stdoutMode: .callback({ buffer.append($0) }), stderrMode: .callback({ buffer.append($0) }))
+        let result = try! runner.sync(stdoutMode: .callback({ stdout.append($0) }), stderrMode: .callback({ stderr.append($0) }))
         XCTAssertEqual(result.status, 0)
-        XCTAssertEqual(buffer, "stdout\nstderr")
+        XCTAssertEqual(stdout, "stdout")
+        XCTAssertEqual(stderr, "stderr")
         XCTAssertEqual(result.stdout, "")
         XCTAssertEqual(result.stderr, "")
     }
