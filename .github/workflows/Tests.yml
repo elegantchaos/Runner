@@ -145,7 +145,7 @@ jobs:
           run: mkdir logs
         - name: Set Xcode Version
           run: |
-            xcode-select -s /Applications/Xcode_11.3.1.app
+            sudo xcode-select -s /Applications/Xcode_11.3.1.app
             swift --version
             xcodebuild --version
         - name: Xcode Version
@@ -207,7 +207,7 @@ jobs:
           run: mkdir logs
         - name: Set Xcode Version
           run: |
-            xcode-select -s /Applications/Xcode_11.4.app
+            sudo xcode-select -s /Applications/Xcode_11.4.app
             swift --version
             xcodebuild --version
         - name: Xcode Version
