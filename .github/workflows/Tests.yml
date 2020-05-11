@@ -113,6 +113,8 @@ jobs:
         - name: Xcode Version
           run: |
             sudo xcode-select -s /Applications/Xcode_11.3.1.app
+            xcodebuild -version
+            swift --version
         - name: XC Pretty
           run: sudo gem install xcpretty-travis-formatter
         - name: Detect Workspace & Scheme (macOS)
@@ -166,8 +168,6 @@ jobs:
           uses: actions/checkout@v1
         - name: Make Logs Directory
           run: mkdir logs
-        - name: Xcode Version
-          run: xcodebuild -version
         - name: Install Toolchain
           run: |
             branch="swift-5.3-branch"
@@ -181,6 +181,9 @@ jobs:
             sudo installer -pkg $downloadYML-osx.pkg -target /
             ln -s "/Library/Developer/Toolchains/$downloadYML.xctoolchain/usr/bin" swift-latest
             export PATH="swift-latest:$PATH"
+        - name: Xcode Version
+          run: |
+            xcodebuild -version
             swift --version
         - name: XC Pretty
           run: sudo gem install xcpretty-travis-formatter
@@ -235,8 +238,6 @@ jobs:
           uses: actions/checkout@v1
         - name: Make Logs Directory
           run: mkdir logs
-        - name: Xcode Version
-          run: xcodebuild -version
         - name: Install Toolchain
           run: |
             branch="development"
@@ -250,6 +251,9 @@ jobs:
             sudo installer -pkg $downloadYML-osx.pkg -target /
             ln -s "/Library/Developer/Toolchains/$downloadYML.xctoolchain/usr/bin" swift-latest
             export PATH="swift-latest:$PATH"
+        - name: Xcode Version
+          run: |
+            xcodebuild -version
             swift --version
         - name: XC Pretty
           run: sudo gem install xcpretty-travis-formatter
