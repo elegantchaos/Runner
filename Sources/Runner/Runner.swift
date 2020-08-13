@@ -9,6 +9,7 @@ import Foundation
 open class Runner {
     public typealias PipeCallback = (String) -> Void
     
+    let queue: DispatchQueue
     var environment: [String:String]
     let executable: URL
     public var cwd: URL?
@@ -34,6 +35,7 @@ open class Runner {
         self.executable = executable
         self.environment = environment
         self.cwd = cwd
+        self.queue = DispatchQueue(label: "runner.\(executable.lastPathComponent)")
     }
 
     /**
@@ -45,6 +47,7 @@ open class Runner {
         self.executable = Runner.find(command: command, default: "/usr/bin/\(command)")
         self.environment = environment
         self.cwd = cwd
+        self.queue = DispatchQueue(label: "runner.\(command)")
     }
 
     /**
@@ -78,15 +81,17 @@ open class Runner {
         }
         
         let pipe: Pipe
+        let queue: DispatchQueue
         var callback: PipeCallback
         var handle: FileHandle?
         var tee: FileHandle?
         var buffer: Buffer
         
-        init(tee teeHandle: FileHandle? = nil, callback: PipeCallback? = nil) {
+        init(tee teeHandle: FileHandle? = nil, queue: DispatchQueue, callback: PipeCallback? = nil) {
             let buffer = Buffer()
             
             self.pipe = Pipe()
+            self.queue = queue
             self.tee = teeHandle
             self.handle = pipe.fileHandleForReading
             self.buffer = buffer
@@ -94,28 +99,36 @@ open class Runner {
 
             handle?.readabilityHandler = { handle in
                 let data = handle.availableData
-                teeHandle?.write(data)
-                if let string = String(data: data, encoding: .utf8) {
-                    if string.count > 0 {
-                        self.callback(string)
-                    }
+                queue.async {
+                    self.write(data: data)
                 }
             }
         }
         
         func finish() -> String {
             if let handle = handle {
-                handle.readabilityHandler = nil
-                let data = handle.readDataToEndOfFile()
-                tee?.write(data)
-                if let string = String(data: data, encoding: .utf8) {
-                    if string.count > 0 {
-                        self.callback(string)
-                    }
+                queue.async {
+                    let data = handle.readDataToEndOfFile()
+                    handle.readabilityHandler = nil
+                    self.write(data: data)
                 }
             }
+
+            var final = ""
+            queue.sync {
+                final = buffer.text
+            }
             
-            return buffer.text
+            return final
+        }
+        
+        func write(data: Data) {
+            tee?.write(data)
+            if let string = String(data: data, encoding: .utf8) {
+                if string.count > 0 {
+                    self.callback(string)
+                }
+            }
         }
     }
 
@@ -175,15 +188,15 @@ open class Runner {
             case .passthrough:
                 return nil
             case .capture:
-                let outInfo = PipeInfo()
+                let outInfo = PipeInfo(queue: queue)
                 pipe = outInfo.pipe
                 return outInfo
             case .tee:
-                let outInfo = PipeInfo(tee: FileHandle.standardOutput)
+                let outInfo = PipeInfo(tee: FileHandle.standardOutput, queue: queue)
                 pipe = outInfo.pipe
                 return outInfo
             case .callback(let block):
-                let outInfo = PipeInfo(callback: block)
+                let outInfo = PipeInfo(queue: queue, callback: block)
                 pipe = outInfo.pipe
                 return outInfo
 
