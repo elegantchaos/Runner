@@ -6,8 +6,18 @@
 
 import Foundation
 
+/// Simplifies the process of executing subprocesses and capturing
+/// their output.
+///
+/// To initialise a Runner, you pass it a command to execute, and
+/// optionally a working directory and some environment variables.
+///
+/// You can then invoke the command (multiple times if you need).
+/// For each invocation you pass some arguments, and also the mode
+/// to use for capturing output (stdout and stderr) from the process.
+///
+/// Invocation can be done synchronously or asynchronously.
 open class Runner {
-    public typealias PipeCallback = (String) -> Void
     
     let queue: DispatchQueue
     var environment: [String:String]
@@ -18,7 +28,7 @@ open class Runner {
         case passthrough
         case capture
         case tee
-        case callback(_ block: PipeCallback)
+        case callback(_ block: PipeInfo.Callback)
     }
     
     public struct Result {
@@ -75,66 +85,11 @@ open class Runner {
     }
 
 
-    public class PipeInfo {
-        class Buffer {
-            var text: String = ""
-        }
-        
-        let pipe: Pipe
-        let queue: DispatchQueue
-        var callback: PipeCallback
-        var handle: FileHandle?
-        var tee: FileHandle?
-        var buffer: Buffer
-        
-        init(tee teeHandle: FileHandle? = nil, queue: DispatchQueue, callback: PipeCallback? = nil) {
-            let buffer = Buffer()
-            
-            self.pipe = Pipe()
-            self.queue = queue
-            self.tee = teeHandle
-            self.handle = pipe.fileHandleForReading
-            self.buffer = buffer
-            self.callback = callback ?? { buffer.text.append($0) }
 
-            handle?.readabilityHandler = { handle in
-                let data = handle.availableData
-                queue.async {
-                    self.write(data: data)
-                }
-            }
-        }
-        
-        func finish() -> String {
-            if let handle = handle {
-                queue.async {
-                    let data = handle.readDataToEndOfFile()
-                    handle.readabilityHandler = nil
-                    self.write(data: data)
-                }
-            }
-
-            var final = ""
-            queue.sync {
-                final = buffer.text
-            }
-            
-            return final
-        }
-        
-        func write(data: Data) {
-            tee?.write(data)
-            if let string = String(data: data, encoding: .utf8) {
-                if string.count > 0 {
-                    self.callback(string)
-                }
-            }
-        }
-    }
 
     /**
      Invoke a command and some optional arguments synchronously.
-     Waits for the process to exit and returns the captured output plus the exit status.
+     Waits (syncronously) for the process to exit and returns the captured output plus the exit status.
      */
 
     public func sync(arguments: [String] = [], stdoutMode: Mode = .capture, stderrMode: Mode = .capture) throws -> Result {
@@ -153,12 +108,6 @@ open class Runner {
         process.waitUntilExit()
         
         return Result(status: process.terminationStatus, stdout: stdout?.finish() ?? "", stderr: stderr?.finish() ?? "")
-    }
-
-    public struct RunningProcess {
-        let stdout: PipeInfo?
-        let stderr: PipeInfo?
-        let process: Process
     }
 
     /**
@@ -183,6 +132,33 @@ open class Runner {
         return RunningProcess(stdout: stdout, stderr: stderr, process: process)
     }
 
+    /**
+     Invoke a command and some optional arguments asynchronously.
+     Waits for the process to exit and returns the captured output plus the exit status.
+     */
+
+    @available(macOS 10.15, *)
+    public func run(arguments: [String] = [], stdoutMode: Mode = .capture, stderrMode: Mode = .capture) async throws -> Result {
+        
+        let process = Process()
+        if let cwd = cwd {
+            process.currentDirectoryURL = cwd
+        }
+        process.executableURL = executable
+        process.arguments = arguments
+        process.environment = environment
+
+        let stdout = info(for: stdoutMode, pipe: &process.standardOutput)
+        let stderr = info(for: stderrMode, pipe: &process.standardError)
+        
+        try process.run()
+        return await withCheckedContinuation { continuation in
+            process.waitUntilExit()
+            let result = Result(status: process.terminationStatus, stdout: stdout?.finish() ?? "", stderr: stderr?.finish() ?? "")
+            continuation.resume(returning: result)
+        }
+    }
+    
     func info(for mode: Mode, pipe: inout Any?) -> PipeInfo? {
         switch mode {
             case .passthrough:

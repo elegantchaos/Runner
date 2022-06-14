@@ -29,7 +29,16 @@ final class RunnerTests: XCTestCase {
         XCTAssertEqual(result.status, 0)
         XCTAssertEqual(result.stdout, "hello\ngoodbye")
     }
-    
+
+    func testCaptureMode() {
+        let url = testURL(named: "zero-status", withExtension: "sh")
+        let runner = Runner(for: url)
+        let result = try! runner.sync(stdoutMode: .capture, stderrMode: .capture)
+        XCTAssertEqual(result.status, 0)
+        XCTAssertEqual(result.stdout, "stdout")
+        XCTAssertEqual(result.stderr, "stderr")
+    }
+
     func testTeeMode() {
         let url = testURL(named: "zero-status", withExtension: "sh")
         let runner = Runner(for: url)
@@ -61,4 +70,12 @@ final class RunnerTests: XCTestCase {
         XCTAssertEqual(result.stderr, "")
     }
 
+    func testModernAsync() async throws {
+        let url = testURL(named: "zero-status", withExtension: "sh")
+        let runner = Runner(for: url)
+        let result = try await runner.run(stdoutMode: .capture, stderrMode: .capture)
+        XCTAssertEqual(result.status, 0)
+        XCTAssertEqual(result.stdout, "stdout")
+        XCTAssertEqual(result.stderr, "stderr")
+    }
 }
