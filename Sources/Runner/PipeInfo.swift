@@ -62,4 +62,14 @@ public class PipeInfo {
             }
         }
     }
+    
+    @available(macOS 12.0, *)
+    var bytes: FileHandle.AsyncBytes? {
+        handle?.bytes
+    }
+    
+    @available(macOS 12.0, *)
+    var lines: AsyncLineSequence<FileHandle.AsyncBytes>? {
+        handle.map { $0.bytes.lines }
+    }
 }
