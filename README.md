@@ -92,4 +92,4 @@ for try await line in process.stdout.lines { line in
 
 Alternatively I might take this opportunity to clean up the API a bit, and perhaps remove the old async support.
 
-All suggestions gratefully received...
+All suggestions [gratefully received](https://github.com/elegantchaos/Runner/issues).
