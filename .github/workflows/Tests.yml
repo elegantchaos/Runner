@@ -9,8 +9,8 @@ on: [push, pull_request]
 
 jobs:
 
-    macOS-swift-51:
-        name: macOS (Swift 5.1)
+    macOS-swift-50:
+        name: macOS (Swift 5.0)
         runs-on: macos-10.15
         steps:
         - name: Checkout
@@ -20,7 +20,7 @@ jobs:
         - name: Xcode Version
           run: |
             ls -d /Applications/Xcode*
-            sudo xcode-select -s /Applications/Xcode_11.3.1.app
+            sudo xcode-select -s /Applications/Xcode_11.2.1.app
             xcodebuild -version
             swift --version
         - name: Swift Version
@@ -38,13 +38,13 @@ jobs:
           if: always()
           with:
             type: ${{ job.status }}
-            job_name: 'macOS (Swift 5.1)'
+            job_name: 'macOS (Swift 5.0)'
             mention_if: 'failure'
             url: ${{ secrets.SLACK_WEBHOOK }}
 
 
-    macOS-swift-nightly:
-        name: macOS (Swift Development Nightly)
+    macOS-swift-56:
+        name: macOS (Swift 5.6)
         env:
             TOOLCHAINS: swift
         runs-on: macos-11
@@ -55,16 +55,9 @@ jobs:
           run: mkdir logs
         - name: Install Toolchain
           run: |
-            branch="development"
-            wget --quiet https://download.swift.org/$branch/xcode/latest-build.yml
-            grep "download:" < latest-build.yml > filtered.yml
-            sed -e 's/-osx.pkg//g' filtered.yml > stripped.yml
-            sed -e 's/:[^:\/\/]/YML="/g;s/$/"/g;s/ *=/=/g' stripped.yml > snapshot.sh
-            source snapshot.sh
-            echo "Installing Toolchain: $downloadYML"
-            wget --quiet https://swift.org/builds/$branch/xcode/$downloadYML/$downloadYML-osx.pkg
-            sudo installer -pkg $downloadYML-osx.pkg -target /
-            ln -s "/Library/Developer/Toolchains/$downloadYML.xctoolchain/usr/bin" swift-latest
+            wget --quiet https://download.swift.org/swift-5.6.1-release/xcode/swift-5.6.1-RELEASE/swift-5.6.1-RELEASE-osx.pkg
+            sudo installer -pkg swift-5.6.1-RELEASE-osx.pkg -target /
+            ln -s "/Library/Developer/Toolchains/swift-5.6.1-RELEASE.xctoolchain/usr/bin" swift-latest
             ls -d /Applications/Xcode*
             sudo xcode-select -s /Applications/Xcode_13.2.1.app
             swift --version
@@ -75,7 +68,7 @@ jobs:
         - name: Swift Version
           run: swift --version
         - name: Test (Release)
-          run: export PATH="swift-latest:$PATH"; swift test --configuration release -Xswiftc -enable-testing 
+          run: export PATH="swift-latest:$PATH"; swift test --configuration release -Xswiftc -enable-testing --enable-test-discovery
         - name: Upload Logs
           uses: actions/upload-artifact@v1
           if: always()
@@ -87,15 +80,15 @@ jobs:
           if: always()
           with:
             type: ${{ job.status }}
-            job_name: 'macOS (Swift Development Nightly)'
+            job_name: 'macOS (Swift 5.6)'
             mention_if: 'failure'
             url: ${{ secrets.SLACK_WEBHOOK }}
 
 
-    linux-swift-51:
-        name: Linux (Swift 5.1)
+    linux-swift-50:
+        name: Linux (Swift 5.0)
         runs-on: ubuntu-18.04
-        container: swift:5.1
+        container: swift:5.0
         steps:
         - name: Checkout
           uses: actions/checkout@v1
@@ -116,15 +109,15 @@ jobs:
           if: always()
           with:
             type: ${{ job.status }}
-            job_name: 'Linux (Swift 5.1)'
+            job_name: 'Linux (Swift 5.0)'
             mention_if: 'failure'
             url: ${{ secrets.SLACK_WEBHOOK }}
 
 
-    linux-swift-nightly:
-        name: Linux (Swift Development Nightly)
+    linux-swift-56:
+        name: Linux (Swift 5.6)
         runs-on: ubuntu-18.04
-        container: swiftlang/swift:nightly
+        container: swift:5.6.1-bionic
         steps:
         - name: Checkout
           uses: actions/checkout@v1
@@ -133,7 +126,7 @@ jobs:
         - name: Swift Version
           run: swift --version
         - name: Test (Release)
-          run: swift test --configuration release -Xswiftc -enable-testing 
+          run: swift test --configuration release -Xswiftc -enable-testing --enable-test-discovery
         - name: Upload Logs
           uses: actions/upload-artifact@v1
           if: always()
@@ -145,7 +138,7 @@ jobs:
           if: always()
           with:
             type: ${{ job.status }}
-            job_name: 'Linux (Swift Development Nightly)'
+            job_name: 'Linux (Swift 5.6)'
             mention_if: 'failure'
             url: ${{ secrets.SLACK_WEBHOOK }}
 
