@@ -47,6 +47,7 @@ let runningProcess = runner.async(["some", "arguments"], stdoutMode: .callback {
 
 // run with a custom environment and working directory
 let runner = Runner(for: url, cwd: customURL, environment: ["foo": "bar"])
+let result = runner.sync(["some", "arguments"])
 print(result.status)
 
 // transfer execution to the subprocess
