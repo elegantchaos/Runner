@@ -11,17 +11,17 @@ public class PipeInfo {
     class Buffer {
         var text: String = ""
     }
-    
+
     let pipe: Pipe
     let queue: DispatchQueue
     var callback: Callback
     var handle: FileHandle?
     var tee: FileHandle?
     var buffer: Buffer
-    
+
     init(tee teeHandle: FileHandle? = nil, queue: DispatchQueue, callback: Callback? = nil) {
         let buffer = Buffer()
-        
+
         self.pipe = Pipe()
         self.queue = queue
         self.tee = teeHandle
@@ -36,7 +36,7 @@ public class PipeInfo {
             }
         }
     }
-    
+
     func finish() -> String {
         if let handle = handle {
             queue.async {
@@ -50,26 +50,26 @@ public class PipeInfo {
         queue.sync {
             final = buffer.text
         }
-        
+
         return final
     }
-    
+
     func write(data: Data) {
         tee?.write(data)
         if let string = String(data: data, encoding: .utf8) {
             if string.count > 0 {
-                self.callback(string)
+                callback(string)
             }
         }
     }
-    
+
     @available(macOS 12.0, *)
     var bytes: FileHandle.AsyncBytes? {
         handle?.bytes
     }
-    
+
     @available(macOS 12.0, *)
     var lines: AsyncLineSequence<FileHandle.AsyncBytes>? {
-        handle.map { $0.bytes.lines }
+        handle.map(\.bytes.lines)
     }
 }

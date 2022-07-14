@@ -1,4 +1,4 @@
-// swift-tools-version:5.1
+// swift-tools-version:5.6
 
 import PackageDescription
 
@@ -24,3 +24,11 @@ let package = Package(
             dependencies: ["Runner", "XCTestExtensions"]),
     ]
 )
+
+import Foundation
+if ProcessInfo.processInfo.environment["RESOLVE_COMMAND_PLUGINS"] != nil {
+    package.dependencies.append(
+        .package(url: "https://github.com/elegantchaos/SwiftFormatterPlugin.git", from: "1.0.2")
+    )
+}
+

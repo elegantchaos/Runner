@@ -13,7 +13,7 @@ extension RunnerTests {
 }
 
 public func __allTests() -> [XCTestCaseEntry] {
-    return [
+    [
         testCase(RunnerTests.__allTests__RunnerTests),
     ]
 }

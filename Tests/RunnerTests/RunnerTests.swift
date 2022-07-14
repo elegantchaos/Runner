@@ -62,7 +62,7 @@ final class RunnerTests: XCTestCase {
         var stderr = ""
         let url = testURL(named: "zero-status", withExtension: "sh")
         let runner = Runner(for: url)
-        let result = try runner.sync(stdoutMode: .callback({ stdout.append($0) }), stderrMode: .callback({ stderr.append($0) }))
+        let result = try runner.sync(stdoutMode: .callback { stdout.append($0) }, stderrMode: .callback { stderr.append($0) })
         XCTAssertEqual(result.status, 0)
         XCTAssertEqual(stdout, "stdout")
         XCTAssertEqual(stderr, "stderr")
@@ -78,19 +78,18 @@ final class RunnerTests: XCTestCase {
         XCTAssertEqual(result.stdout, "stdout")
         XCTAssertEqual(result.stderr, "stderr")
     }
-    
+
     enum TestFailure: Error {
         case noStdout
         case noStderr
     }
-    
+
     @available(macOS 12.0, *)
     func testModernStreaming() async throws {
         let url = testURL(named: "zero-status", withExtension: "sh")
         let runner = Runner(for: url)
         let process = try runner.async(stdoutMode: .capture, stderrMode: .capture)
-        
-        
+
         var stdout = ""
         guard let lines = process.stdout?.lines else {
             throw TestFailure.noStdout
@@ -113,6 +112,5 @@ final class RunnerTests: XCTestCase {
         process.process.waitUntilExit()
         XCTAssertEqual(process.process.terminationStatus, 0)
 //        XCTAssertEqual(result.stderr, "stderr")
-
     }
 }

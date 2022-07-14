@@ -33,13 +33,15 @@ print(result.status)
 print(result.stdout)
 print(result.stderr)
 
+// execute in the background, with a callback to process output
+let runningProcess = runner.async(["some", "arguments"], stdoutMode: .callback { print($0) })
 
-// run in a different working directory
-runner.cwd = /* url to the directory */
-let _ = runner.sync(["blah"])
+// run with a custom environment and working directory
+let runner = Runner(for: url, cwd: customURL, environment: ["foo": "bar"])
+print(result.status)
 
 // transfer execution to the subprocess
-runner.exec(url)
+runner.exec(["some", "arguments"])
 ```
 
 ## Path Lookup
@@ -52,3 +54,18 @@ the $PATH environment variable.
 
 let runner = Runner(command: "name")
 ```
+
+## Output Modes
+
+Runner accepts two arguments which control how the `stdout` and `stderr` output streams are handled.
+
+These can be configured to do one of the following:
+
+- `passthrough`: just send the output to the real stdout/stderr
+- `capture`: capture the output in the `Result` structure
+- `tee`: both of the above
+- `callback`: execute a block whenever new output is received
+
+## Async/Await Support
+
+Coming soon to this branch...

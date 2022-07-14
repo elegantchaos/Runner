@@ -18,9 +18,8 @@ import Foundation
 ///
 /// Invocation can be done synchronously or asynchronously.
 open class Runner {
-    
     let queue: DispatchQueue
-    var environment: [String:String]
+    var environment: [String: String]
     let executable: URL
     public var cwd: URL?
 
@@ -30,7 +29,7 @@ open class Runner {
         case tee
         case callback(_ block: PipeInfo.Callback)
     }
-    
+
     public struct Result {
         public let status: Int32
         public let stdout: String
@@ -38,10 +37,10 @@ open class Runner {
     }
 
     /**
-      Initialise with an explicit URL to the executable.
-    */
+       Initialise with an explicit URL to the executable.
+     */
 
-    public init(for executable: URL, cwd: URL? = nil, environment: [String:String] = ProcessInfo.processInfo.environment) {
+    public init(for executable: URL, cwd: URL? = nil, environment: [String: String] = ProcessInfo.processInfo.environment) {
         self.executable = executable
         self.environment = environment
         self.cwd = cwd
@@ -49,11 +48,11 @@ open class Runner {
     }
 
     /**
-      Initialise with a command name.
-      The command will be searched for using $PATH.
-    */
+       Initialise with a command name.
+       The command will be searched for using $PATH.
+     */
 
-    public init(command: String, cwd: URL? = nil, environment: [String:String] = ProcessInfo.processInfo.environment) {
+    public init(command: String, cwd: URL? = nil, environment: [String: String] = ProcessInfo.processInfo.environment) {
         self.executable = Runner.find(command: command, default: "/usr/bin/\(command)")
         self.environment = environment
         self.cwd = cwd
@@ -84,9 +83,6 @@ open class Runner {
         exit(process.terminationStatus)
     }
 
-
-
-
     /**
      Invoke a command and some optional arguments synchronously.
      Waits (syncronously) for the process to exit and returns the captured output plus the exit status.
@@ -103,10 +99,10 @@ open class Runner {
 
         let stdout = info(for: stdoutMode, pipe: &process.standardOutput)
         let stderr = info(for: stderrMode, pipe: &process.standardError)
-        
+
         try process.run()
         process.waitUntilExit()
-        
+
         return Result(status: process.terminationStatus, stdout: stdout?.finish() ?? "", stderr: stderr?.finish() ?? "")
     }
 
@@ -116,7 +112,6 @@ open class Runner {
      */
 
     public func async(arguments: [String] = [], stdoutMode: Mode = .capture, stderrMode: Mode = .capture) throws -> RunningProcess {
-        
         let process = Process()
         if let cwd = cwd {
             process.currentDirectoryURL = cwd
@@ -127,7 +122,7 @@ open class Runner {
 
         let stdout = info(for: stdoutMode, pipe: &process.standardOutput)
         let stderr = info(for: stderrMode, pipe: &process.standardError)
-        
+
         try process.run()
         return RunningProcess(stdout: stdout, stderr: stderr, process: process)
     }
@@ -139,7 +134,6 @@ open class Runner {
 
     @available(macOS 10.15, *)
     public func run(arguments: [String] = [], stdoutMode: Mode = .capture, stderrMode: Mode = .capture) async throws -> Result {
-        
         let process = Process()
         if let cwd = cwd {
             process.currentDirectoryURL = cwd
@@ -150,7 +144,7 @@ open class Runner {
 
         let stdout = info(for: stdoutMode, pipe: &process.standardOutput)
         let stderr = info(for: stderrMode, pipe: &process.standardError)
-        
+
         try process.run()
         return await withCheckedContinuation { continuation in
             process.waitUntilExit()
@@ -158,7 +152,7 @@ open class Runner {
             continuation.resume(returning: result)
         }
     }
-    
+
     func info(for mode: Mode, pipe: inout Any?) -> PipeInfo? {
         switch mode {
             case .passthrough:
@@ -171,14 +165,13 @@ open class Runner {
                 let outInfo = PipeInfo(tee: FileHandle.standardOutput, queue: queue)
                 pipe = outInfo.pipe
                 return outInfo
-            case .callback(let block):
+            case let .callback(block):
                 let outInfo = PipeInfo(queue: queue, callback: block)
                 pipe = outInfo.pipe
                 return outInfo
-
         }
     }
-    
+
     /// Extract text from an output pipe
     /// - Parameter source: the pipe
     func captureString(from pipe: Any?) -> String {
@@ -190,37 +183,36 @@ open class Runner {
         }
         return ""
     }
-        
-  /**
-    Find a command, using the $PATH environment variable.
-    Returns nil if the command couldn't be located.
-    */
 
-  public class func find(command: String) -> URL? {
-      let fm = FileManager.default
-      if let path = ProcessInfo.processInfo.environment["PATH"] {
-          for item in path.split(separator: ":") {
-              let url = URL(fileURLWithPath: String(item)).appendingPathComponent(command)
-              if fm.fileExists(atPath: url.path) {
-                  return url
-              }
-          }
-      }
+    /**
+     Find a command, using the $PATH environment variable.
+     Returns nil if the command couldn't be located.
+     */
 
-      return nil
-  }
+    public class func find(command: String) -> URL? {
+        let fm = FileManager.default
+        if let path = ProcessInfo.processInfo.environment["PATH"] {
+            for item in path.split(separator: ":") {
+                let url = URL(fileURLWithPath: String(item)).appendingPathComponent(command)
+                if fm.fileExists(atPath: url.path) {
+                    return url
+                }
+            }
+        }
 
-  /**
-   Find a command, using the $PATH environment variable.
-   Falls back to the supplied default if the command couldn't be located.
-   */
+        return nil
+    }
+
+    /**
+     Find a command, using the $PATH environment variable.
+     Falls back to the supplied default if the command couldn't be located.
+     */
 
     public class func find(command: String, default fallbackPath: String) -> URL {
         if let url = find(command: command) {
-          return url
+            return url
         }
 
         return URL(fileURLWithPath: fallbackPath)
     }
-
 }
