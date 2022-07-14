@@ -75,6 +75,20 @@ These can be configured to do one of the following:
 - `tee`: both of the above
 - `callback`: execute a block whenever new output is received
 
-## Async/Await Support
+## Experimental Async/Await Support
 
-Coming soon to this branch...
+At it's simplest, this might just expose byte and line streams for stdout and stderr:
+
+```swift
+// execute in the background, with a callback to process output
+let runner = Runner(for: url)
+let process = try runner.run(["some", "arguments"])
+
+for try await line in process.stdout.lines { line in
+    print(line)
+ } 
+```
+
+Alternatively I might take this opportunity to clean up the API a bit, and perhaps remove the old async support.
+
+All suggestions gratefully received...

@@ -132,7 +132,7 @@ open class Runner {
      Waits for the process to exit and returns the captured output plus the exit status.
      */
 
-    @available(macOS 10.15, *)
+    @available(macOS 10.15, iOS 13.0, tvOS 13.0, macCatalyst 13.0, *)
     public func run(arguments: [String] = [], stdoutMode: Mode = .capture, stderrMode: Mode = .capture) async throws -> Result {
         let process = Process()
         if let cwd = cwd {

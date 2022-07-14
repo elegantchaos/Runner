@@ -21,7 +21,11 @@ let package = Package(
             dependencies: []),
         .testTarget(
             name: "RunnerTests",
-            dependencies: ["Runner", "XCTestExtensions"]),
+            dependencies: ["Runner", "XCTestExtensions"],
+            resources: [
+                .copy("Resources/")
+            ]
+        ),
     ]
 )
 
