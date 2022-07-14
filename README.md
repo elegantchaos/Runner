@@ -20,14 +20,23 @@
 
 Some basic support for executing subprocesses, using Foundation.Process.
 
-Usage:
+To initialise a Runner, you pass it a command to execute, and
+optionally a working directory and some environment variables.
+
+You can then invoke the command (multiple times if you need).
+For each invocation you pass some arguments, and also the mode
+to use for capturing output (stdout and stderr) from the process.
+
+Invocation can be done synchronously or asynchronously.
+
+## Usage
 
 ```swift
 
 let url = /* url to the executable */
 let runner = Runner(for: url)
 
-// execute and wait for results
+// execute and wait for completion, capturing the results
 let result = runner.sync(["some", "arguments"])
 print(result.status)
 print(result.stdout)
