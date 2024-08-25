@@ -20,11 +20,17 @@ open class Runner {
         case tee
         case callback(_ block: PipeCallback)
     }
-    
-    public struct Result {
+
+    public struct Result: CustomStringConvertible {
         public let status: Int32
         public let stdout: String
         public let stderr: String
+
+        public var description: String {
+            let stat = status == 0 ? "OK" : "Failed \(status)"
+            let err = (stderr.isEmpty && !stdout.isEmpty) ? "" : "\n\n\(stderr)"
+            return "\(stat)\n\(stdout)\(err)"
+        }
     }
 
     /**
