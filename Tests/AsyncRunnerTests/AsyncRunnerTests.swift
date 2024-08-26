@@ -69,7 +69,7 @@ import Testing
 @Test func testTeeMode() async throws {
   // Write your test here and use APIs like `#expect(...)` to check expected conditions.
   let runner = Runner(for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!)
-  let result = try! runner.run(stdoutMode: .tee, stderrMode: .tee)
+  let result = try! runner.run(stdoutMode: .both, stderrMode: .both)
 
   #expect(result.stdout != nil)
   #expect(result.stderr != nil)
@@ -91,7 +91,7 @@ import Testing
 @Test func testPassthroughMode() async throws {
   // Write your test here and use APIs like `#expect(...)` to check expected conditions.
   let runner = Runner(for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!)
-  let result = try! runner.run(stdoutMode: .passthrough, stderrMode: .passthrough)
+  let result = try! runner.run(stdoutMode: .forward, stderrMode: .forward)
 
   #expect(result.stdout == nil)
   #expect(result.stderr == nil)

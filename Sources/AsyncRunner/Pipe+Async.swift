@@ -8,7 +8,7 @@ extension Pipe {
     let pipe: Pipe
 
     /// Optional file handle to copy read bytes to.
-    let tee: FileHandle?
+    let forwardHandle: FileHandle?
 
     func makeAsyncIterator() -> AsyncStream<Element>.Iterator {
       AsyncStream { continuation in
@@ -20,8 +20,8 @@ extension Pipe {
             return
           }
 
+          forwardHandle?.write(data)
           for byte in data {
-            tee?.write(Data([byte]))
             continuation.yield(byte)
           }
         }
@@ -34,7 +34,9 @@ extension Pipe {
   }
 
   /// Return byte sequence
-  var bytes: AsyncBytes { AsyncBytes(pipe: self, tee: nil) }
+  var bytes: AsyncBytes { AsyncBytes(pipe: self, forwardHandle: nil) }
 
-  func bytesWithTee(_ tee: FileHandle) -> AsyncBytes { AsyncBytes(pipe: self, tee: tee) }
+  func bytesForwardingTo(_ forwardHandle: FileHandle) -> AsyncBytes {
+    AsyncBytes(pipe: self, forwardHandle: forwardHandle)
+  }
 }
