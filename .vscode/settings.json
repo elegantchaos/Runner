@@ -1,0 +1,9 @@
+{
+  "lldb.library": "/Applications/Xcode-16.1.0-Beta.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/LLDB",
+  "lldb.launch.expressions": "native",
+  "swift.actionAfterBuildError": "Do Nothing",
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.tabSize": 2,
+  "editor.useTabStops": false
+}
