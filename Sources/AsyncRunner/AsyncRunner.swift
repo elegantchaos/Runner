@@ -124,6 +124,7 @@ open class Runner {
   {
     switch mode {
     case .passthrough:
+      processPipe = tee
       return nil
     case .capture:
 

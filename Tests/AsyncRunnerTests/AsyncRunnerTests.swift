@@ -3,8 +3,8 @@ import Testing
 
 @testable import AsyncRunner
 
-@Test func testSyncZeroStatus() async throws {
-  // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+/// Test with a task that has a zero status.
+@Test func testZeroStatus() async throws {
   let runner = Runner(for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!)
   let result = try! runner.run()
 
@@ -23,63 +23,79 @@ import Testing
   #expect(result.process.terminationReason == .exit)
 }
 
-/*
-final class RunnerTests: XCTestCase {
-    func testSyncZeroStatus() {
-        let url = testURL(named: "zero-status", withExtension: "sh")
-        let runner = Runner(for: url)
-        let result = try! runner.sync()
-        XCTAssertEqual(result.status, 0)
-        XCTAssertEqual(result.stdout, "stdout")
-        XCTAssertEqual(result.stderr, "stderr")
-    }
+/// Test with a task that has a non-zero status.
+@Test func testNonZeroStatus() async throws {
+  let runner = Runner(for: Bundle.module.url(forResource: "non-zero-status", withExtension: "sh")!)
+  let result = try! runner.run()
 
-    func testSyncNonZeroStatus() {
-        let url = testURL(named: "non-zero-status", withExtension: "sh")
-        let runner = Runner(for: url)
-        let result = try! runner.sync()
-        XCTAssertEqual(result.status, 123)
-        XCTAssertEqual(result.stdout, "stdout")
-        XCTAssertEqual(result.stderr, "stderr")
-    }
+  #expect(result.stdout != nil)
+  #expect(result.stderr != nil)
 
-    func testLongRunning() {
-        let url = testURL(named: "long-running", withExtension: "sh")
-        let runner = Runner(for: url)
-        let result = try! runner.sync()
-        XCTAssertEqual(result.status, 0)
-        XCTAssertEqual(result.stdout, "hello\ngoodbye")
-    }
+  for await l in result.stdout!.lines {
+    #expect(l == "stdout")
+  }
 
-    func testTeeMode() {
-        let url = testURL(named: "zero-status", withExtension: "sh")
-        let runner = Runner(for: url)
-        let result = try! runner.sync(stdoutMode: .tee, stderrMode: .tee)
-        XCTAssertEqual(result.status, 0)
-        XCTAssertEqual(result.stdout, "stdout")
-        XCTAssertEqual(result.stderr, "stderr")
-    }
+  for await l in result.stderr!.lines {
+    #expect(l == "stderr")
+  }
 
-    func testPassthroughMode() {
-        let url = testURL(named: "zero-status", withExtension: "sh")
-        let runner = Runner(for: url)
-        let result = try! runner.sync(stdoutMode: .passthrough, stderrMode: .passthrough)
-        XCTAssertEqual(result.status, 0)
-        XCTAssertEqual(result.stdout, "")
-        XCTAssertEqual(result.stderr, "")
-    }
+  #expect(result.process.terminationStatus == 123)
+  #expect(result.process.terminationReason == .exit)
+}
 
-    func testCallbackMode() {
-        var stdout = ""
-        var stderr = ""
-        let url = testURL(named: "zero-status", withExtension: "sh")
-        let runner = Runner(for: url)
-        let result = try! runner.sync(stdoutMode: .callback({ stdout.append($0) }), stderrMode: .callback({ stderr.append($0) }))
-        XCTAssertEqual(result.status, 0)
-        XCTAssertEqual(stdout, "stdout")
-        XCTAssertEqual(stderr, "stderr")
-        XCTAssertEqual(result.stdout, "")
-        XCTAssertEqual(result.stderr, "")
-    }
+/// Test with a task that outputs more than one line
+/// and takes a while to complete.
+@Test func testLongRunningStatus() async throws {
+  // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+  let runner = Runner(for: Bundle.module.url(forResource: "long-running", withExtension: "sh")!)
+  let result = try! runner.run()
 
-*/
+  #expect(result.stdout != nil)
+  #expect(result.stderr != nil)
+
+  var expected = ["hello", "goodbye"]
+  for await l in result.stdout!.lines {
+    print(l)
+    #expect(l == expected.removeFirst())
+  }
+  #expect(expected.isEmpty)
+
+  #expect(result.process.terminationStatus == 0)
+  #expect(result.process.terminationReason == .exit)
+}
+
+/// Test tee mode where we both capture
+/// the process output and write it to stdout/stderr.
+@Test func testTeeMode() async throws {
+  // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+  let runner = Runner(for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!)
+  let result = try! runner.run(stdoutMode: .tee, stderrMode: .tee)
+
+  #expect(result.stdout != nil)
+  #expect(result.stderr != nil)
+
+  for await l in result.stdout!.lines {
+    #expect(l == "stdout")
+  }
+
+  for await l in result.stderr!.lines {
+    #expect(l == "stderr")
+  }
+
+  #expect(result.process.terminationStatus == 0)
+  #expect(result.process.terminationReason == .exit)
+}
+
+/// Test pass-through mode where we don't capture
+/// the process output, but forward it to stdout/stderr.
+@Test func testPassthroughMode() async throws {
+  // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+  let runner = Runner(for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!)
+  let result = try! runner.run(stdoutMode: .passthrough, stderrMode: .passthrough)
+
+  #expect(result.stdout == nil)
+  #expect(result.stderr == nil)
+  result.process.waitUntilExit()
+  #expect(result.process.terminationStatus == 0)
+  #expect(result.process.terminationReason == .exit)
+}
