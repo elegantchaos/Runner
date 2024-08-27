@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import AsyncRunner
+@testable import Runner
 
 /// Test with a task that has a zero status.
 @Test func testZeroStatus() async throws {

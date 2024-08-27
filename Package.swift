@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-  name: "AsyncRunner",
+  name: "Runner",
   platforms: [
     .macOS(.v10_15),
     .iOS(.v15),
@@ -14,17 +14,17 @@ let package = Package(
   products: [
     // Products define the executables and libraries a package produces, making them visible to other packages.
     .library(
-      name: "AsyncRunner",
-      targets: ["AsyncRunner"])
+      name: "Runner",
+      targets: ["Runner"])
   ],
   targets: [
     // Targets are the basic building blocks of a package, defining a module or a test suite.
     // Targets can depend on other targets in this package and products from dependencies.
     .target(
-      name: "AsyncRunner"),
+      name: "Runner"),
     .testTarget(
-      name: "AsyncRunnerTests",
-      dependencies: ["AsyncRunner"],
+      name: "RunnerTests",
+      dependencies: ["Runner"],
       resources: [
         .copy("Resources")
       ]
