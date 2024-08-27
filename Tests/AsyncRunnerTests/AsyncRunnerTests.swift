@@ -19,8 +19,10 @@ import Testing
     #expect(l == "stderr")
   }
 
-  #expect(result.process.terminationStatus == 0)
-  #expect(result.process.terminationReason == .exit)
+  for await state in result.state {
+    #expect(state == .succeeded)
+  }
+
 }
 
 /// Test with a task that has a non-zero status.
@@ -39,8 +41,9 @@ import Testing
     #expect(l == "stderr")
   }
 
-  #expect(result.process.terminationStatus == 123)
-  #expect(result.process.terminationReason == .exit)
+  for await state in result.state {
+    #expect(state == .failed(123))
+  }
 }
 
 /// Test with a task that outputs more than one line
@@ -60,8 +63,9 @@ import Testing
   }
   #expect(expected.isEmpty)
 
-  #expect(result.process.terminationStatus == 0)
-  #expect(result.process.terminationReason == .exit)
+  for await state in result.state {
+    #expect(state == .succeeded)
+  }
 }
 
 /// Test tee mode where we both capture
@@ -82,8 +86,9 @@ import Testing
     #expect(l == "stderr")
   }
 
-  #expect(result.process.terminationStatus == 0)
-  #expect(result.process.terminationReason == .exit)
+  for await state in result.state {
+    #expect(state == .succeeded)
+  }
 }
 
 /// Test pass-through mode where we don't capture
@@ -93,9 +98,10 @@ import Testing
   let runner = Runner(for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!)
   let result = try! runner.run(stdoutMode: .forward, stderrMode: .forward)
 
+  for await state in result.state {
+    #expect(state == .succeeded)
+  }
+
   #expect(result.stdout == nil)
   #expect(result.stderr == nil)
-  result.process.waitUntilExit()
-  #expect(result.process.terminationStatus == 0)
-  #expect(result.process.terminationReason == .exit)
 }

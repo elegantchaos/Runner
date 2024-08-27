@@ -7,6 +7,7 @@
 import Foundation
 
 open class Runner {
+
   var environment: [String: String]
   let executable: URL
   public var cwd: URL?
@@ -65,7 +66,7 @@ open class Runner {
   public struct RunningProcess {
     let stdout: Pipe.AsyncBytes?
     let stderr: Pipe.AsyncBytes?
-    let process: Task<Process, Never>
+    let state: RunState.Sequence
   }
 
   /**
@@ -91,19 +92,12 @@ open class Runner {
     let stderr = byteStream(
       for: &process.standardError, mode: stderrMode, forwardingTo: FileHandle.standardError)
 
-    let processTask = Task {
-      await withCheckedContinuation({
-        continuation in
-        process.terminationHandler = { process in
-          continuation.resume(returning: process)
-        }
-      })
-    }
+    let state = RunState.Sequence(process: process)
+    let result = RunningProcess(stdout: stdout, stderr: stderr, state: state)
 
     try process.run()
 
-    return RunningProcess(
-      stdout: stdout, stderr: stderr, process: processTask)
+    return result
   }
 
   /// Return a byte stream for the given mode.
