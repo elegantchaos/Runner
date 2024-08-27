@@ -11,11 +11,11 @@ import Testing
   #expect(result.stdout != nil)
   #expect(result.stderr != nil)
 
-  for await l in result.stdout!.lines {
+  for await l in result.stdout.lines {
     #expect(l == "stdout")
   }
 
-  for await l in result.stderr!.lines {
+  for await l in result.stderr.lines {
     #expect(l == "stderr")
   }
 
@@ -33,11 +33,11 @@ import Testing
   #expect(result.stdout != nil)
   #expect(result.stderr != nil)
 
-  for await l in result.stdout!.lines {
+  for await l in result.stdout.lines {
     #expect(l == "stdout")
   }
 
-  for await l in result.stderr!.lines {
+  for await l in result.stderr.lines {
     #expect(l == "stderr")
   }
 
@@ -57,7 +57,7 @@ import Testing
   #expect(result.stderr != nil)
 
   var expected = ["hello", "goodbye"]
-  for await l in result.stdout!.lines {
+  for await l in result.stdout.lines {
     print(l)
     #expect(l == expected.removeFirst())
   }
@@ -78,11 +78,11 @@ import Testing
   #expect(result.stdout != nil)
   #expect(result.stderr != nil)
 
-  for await l in result.stdout!.lines {
+  for await l in result.stdout.lines {
     #expect(l == "stdout")
   }
 
-  for await l in result.stderr!.lines {
+  for await l in result.stderr.lines {
     #expect(l == "stderr")
   }
 
@@ -98,10 +98,15 @@ import Testing
   let runner = Runner(for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!)
   let result = try! runner.run(stdoutMode: .forward, stderrMode: .forward)
 
+  for await _ in result.stdout {
+    #expect(Bool(false), "shouldn't be any content")
+  }
+
+  for await _ in result.stderr {
+    #expect(Bool(false), "shouldn't be any content")
+  }
+
   for await state in result.state {
     #expect(state == .succeeded)
   }
-
-  #expect(result.stdout == nil)
-  #expect(result.stderr == nil)
 }

@@ -64,8 +64,8 @@ open class Runner {
   }
 
   public struct RunningProcess {
-    let stdout: Pipe.AsyncBytes?
-    let stderr: Pipe.AsyncBytes?
+    let stdout: Pipe.AsyncBytes
+    let stderr: Pipe.AsyncBytes
     let state: RunState.Sequence
   }
 
@@ -107,13 +107,14 @@ open class Runner {
   /// is set up to also forward to the forwardingHandle.
   private func byteStream(
     for processPipe: inout Any?, mode: Mode, forwardingTo forwardHandle: FileHandle
-  ) -> Pipe
-    .AsyncBytes?
+  )
+    -> Pipe
+    .AsyncBytes
   {
     switch mode {
     case .forward:
       processPipe = forwardHandle
-      return nil
+      return Pipe.noBytes
     case .capture:
 
       let pipe = Pipe()
