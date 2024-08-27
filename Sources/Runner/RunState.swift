@@ -1,17 +1,17 @@
 import Foundation
 
-enum RunState: Comparable {
+public enum RunState: Comparable {
   case succeeded
   case failed(Int32)
   case uncaughtSignal
   case unknown
 
   /// A one-item sequence reporting the final state of a process.
-  struct Sequence: AsyncSequence {
+  public struct Sequence: AsyncSequence {
     /// The process we're reporting on.
     let process: Process
 
-    func makeAsyncIterator() -> AsyncStream<RunState>.Iterator {
+    public func makeAsyncIterator() -> AsyncStream<RunState>.Iterator {
       AsyncStream { continuation in
         process.terminationHandler = { process in
           let s: RunState

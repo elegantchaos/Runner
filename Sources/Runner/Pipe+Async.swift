@@ -1,8 +1,8 @@
 import Foundation
 
 extension Pipe {
-  struct AsyncBytes: AsyncSequence {
-    typealias Element = UInt8
+  public struct AsyncBytes: AsyncSequence, Sendable {
+    public typealias Element = UInt8
 
     /// Pipe we're reading from.
     let pipe: Pipe?
@@ -10,8 +10,11 @@ extension Pipe {
     /// Optional file handle to copy read bytes to.
     let forwardHandle: FileHandle?
 
-    func makeAsyncIterator() -> AsyncStream<Element>.Iterator {
-      AsyncStream { continuation in
+    /// Make an iterator that reads data from the pipe's file handle
+    /// and outputs it as a byte sequence.
+    public func makeAsyncIterator() -> AsyncStream<Element>.Iterator {
+      let fh = forwardHandle
+      return AsyncStream { continuation in
         // if we have no pipe, return an empty sequence
         guard let pipe else {
           continuation.finish()
@@ -26,7 +29,7 @@ extension Pipe {
             return
           }
 
-          forwardHandle?.write(data)
+          fh?.write(data)
           for byte in data {
             continuation.yield(byte)
           }
@@ -40,12 +43,12 @@ extension Pipe {
   }
 
   /// Return an empty sequence
-  static var noBytes: AsyncBytes { AsyncBytes(pipe: nil, forwardHandle: nil) }
+  public static var noBytes: AsyncBytes { AsyncBytes(pipe: nil, forwardHandle: nil) }
 
   /// Return byte sequence
-  var bytes: AsyncBytes { AsyncBytes(pipe: self, forwardHandle: nil) }
+  public var bytes: AsyncBytes { AsyncBytes(pipe: self, forwardHandle: nil) }
 
-  func bytesForwardingTo(_ forwardHandle: FileHandle) -> AsyncBytes {
+  public func bytesForwardingTo(_ forwardHandle: FileHandle) -> AsyncBytes {
     AsyncBytes(pipe: self, forwardHandle: forwardHandle)
   }
 }

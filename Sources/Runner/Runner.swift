@@ -64,9 +64,9 @@ open class Runner {
   }
 
   public struct RunningProcess {
-    let stdout: Pipe.AsyncBytes
-    let stderr: Pipe.AsyncBytes
-    let state: RunState.Sequence
+    public let stdout: Pipe.AsyncBytes
+    public let stderr: Pipe.AsyncBytes
+    public let state: RunState.Sequence
   }
 
   /**
