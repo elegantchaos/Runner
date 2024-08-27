@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
   name: "AsyncRunner",
   platforms: [
-    .macOS(.v12),
+    .macOS(.v10_15),
     .iOS(.v15),
     .watchOS(.v8),
     .tvOS(.v15),
