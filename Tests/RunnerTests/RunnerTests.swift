@@ -49,7 +49,6 @@ import Testing
 /// Test with a task that outputs more than one line
 /// and takes a while to complete.
 @Test func testLongRunningStatus() async throws {
-  // Write your test here and use APIs like `#expect(...)` to check expected conditions.
   let runner = Runner(for: Bundle.module.url(forResource: "long-running", withExtension: "sh")!)
   let result = try! runner.run()
 
@@ -71,7 +70,6 @@ import Testing
 /// Test tee mode where we both capture
 /// the process output and write it to stdout/stderr.
 @Test func testTeeMode() async throws {
-  // Write your test here and use APIs like `#expect(...)` to check expected conditions.
   let runner = Runner(for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!)
   let result = try! runner.run(stdoutMode: .both, stderrMode: .both)
 
@@ -94,7 +92,6 @@ import Testing
 /// Test pass-through mode where we don't capture
 /// the process output, but forward it to stdout/stderr.
 @Test func testPassthroughMode() async throws {
-  // Write your test here and use APIs like `#expect(...)` to check expected conditions.
   let runner = Runner(for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!)
   let result = try! runner.run(stdoutMode: .forward, stderrMode: .forward)
 
@@ -109,4 +106,15 @@ import Testing
   for await state in result.state {
     #expect(state == .succeeded)
   }
+}
+
+/// Test passing arguments.
+@Test func testArgs() async throws {
+  let runner = Runner(for: Bundle.module.url(forResource: "args", withExtension: "sh")!)
+  let result = try! runner.run(["arg1", "arg2"])
+
+  for await line in result.stdout.lines {
+    #expect(line == "args arg1 arg2")
+  }
+
 }

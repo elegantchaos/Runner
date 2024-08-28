@@ -75,7 +75,7 @@ open class Runner {
      */
 
   public func run(
-    arguments: [String] = [], stdoutMode: Mode = .capture, stderrMode: Mode = .capture
+    _ arguments: [String] = [], stdoutMode: Mode = .capture, stderrMode: Mode = .capture
   ) throws -> RunningProcess {
 
     let process = Process()
