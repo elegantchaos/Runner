@@ -37,7 +37,7 @@ open class Runner {
     command: String, cwd: URL? = nil,
     environment: [String: String] = ProcessInfo.processInfo.environment
   ) {
-    self.executable = URL(inPath: command, fallback: "/usr/bin/\(command)")
+    self.executable = URL(inSystemPathWithName: command, fallback: "/usr/bin/\(command)")
     self.environment = environment
     self.cwd = cwd
   }
