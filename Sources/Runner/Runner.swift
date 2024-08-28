@@ -37,7 +37,7 @@ open class Runner {
     command: String, cwd: URL? = nil,
     environment: [String: String] = ProcessInfo.processInfo.environment
   ) {
-    self.executable = Runner.find(command: command, default: "/usr/bin/\(command)")
+    self.executable = URL(inPath: command, fallback: "/usr/bin/\(command)")
     self.environment = environment
     self.cwd = cwd
   }
@@ -126,37 +126,4 @@ open class Runner {
       return pipe.bytesForwardingTo(forwardHandle)
     }
   }
-
-  /**
-    Find a command, using the $PATH environment variable.
-    Returns nil if the command couldn't be located.
-    */
-
-  public class func find(command: String) -> URL? {
-    let fm = FileManager.default
-    if let path = ProcessInfo.processInfo.environment["PATH"] {
-      for item in path.split(separator: ":") {
-        let url = URL(fileURLWithPath: String(item)).appendingPathComponent(command)
-        if fm.fileExists(atPath: url.path) {
-          return url
-        }
-      }
-    }
-
-    return nil
-  }
-
-  /**
-   Find a command, using the $PATH environment variable.
-   Falls back to the supplied default if the command couldn't be located.
-   */
-
-  public class func find(command: String, default fallbackPath: String) -> URL {
-    if let url = find(command: command) {
-      return url
-    }
-
-    return URL(fileURLWithPath: fallbackPath)
-  }
-
 }
