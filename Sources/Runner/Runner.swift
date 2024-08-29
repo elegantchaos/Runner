@@ -63,7 +63,7 @@ open class Runner {
     exit(process.terminationStatus)
   }
 
-  public struct RunningProcess {
+  public struct RunningProcess: Sendable {
     public let stdout: Pipe.AsyncBytes
     public let stderr: Pipe.AsyncBytes
     public let state: RunState.Sequence

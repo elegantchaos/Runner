@@ -7,7 +7,7 @@ public enum RunState: Comparable {
   case unknown
 
   /// A one-item sequence reporting the final state of a process.
-  public struct Sequence: AsyncSequence {
+  public struct Sequence: AsyncSequence, Sendable {
     /// The process we're reporting on.
     let process: Process
 
