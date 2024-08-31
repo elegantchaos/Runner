@@ -69,7 +69,7 @@ import Testing
 
 /// Test tee mode where we both capture
 /// the process output and write it to stdout/stderr.
-@Test func testTeeMode() async throws {
+@Test func testBothMode() async throws {
   let runner = Runner(for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!)
   let result = try! runner.run(stdoutMode: .both, stderrMode: .both)
 
