@@ -68,6 +68,15 @@ open class Runner {
     public let stdout: Pipe.AsyncBytes
     public let stderr: Pipe.AsyncBytes
     public let state: RunState.Sequence
+
+    /// Check the state of the process and throw an error if it failed.
+    public func throwIfFailed(_ e: @autoclosure () async -> Error) async throws {
+      for await state in self.state {
+        if state != .succeeded {
+          throw await e()
+        }
+      }
+    }
   }
 
   /**
