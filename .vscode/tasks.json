@@ -10,7 +10,7 @@
 				"-diagnostic-style=llvm"
 			],
 			"env": {},
-			"cwd": "{workspaceFolder}",
+			"cwd": "${workspaceFolder}",
 			"disableTaskQueue": true,
 			"showBuildStatus": "swiftStatus",
 			"group": {
@@ -31,7 +31,7 @@
 				"-diagnostic-style=llvm"
 			],
 			"env": {},
-			"cwd": "{workspaceFolder}",
+			"cwd": "${workspaceFolder}",
 			"disableTaskQueue": true,
 			"showBuildStatus": "swiftStatus",
 			"group": {
