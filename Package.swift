@@ -19,7 +19,7 @@ let package = Package(
   ],
 
   dependencies: [
-    .package(url: "https://github.com/elegantchaos/ChaosByteStreams", from: "1.0.0")
+    .package(url: "https://github.com/elegantchaos/ChaosByteStreams", from: "1.0.1")
   ],
 
   targets: [
