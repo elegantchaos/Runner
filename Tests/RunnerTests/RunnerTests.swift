@@ -57,7 +57,6 @@ import Testing
 
   var expected = ["hello", "goodbye"]
   for await l in result.stdout.lines {
-    print(l)
     #expect(l == expected.removeFirst())
   }
   #expect(expected.isEmpty)

@@ -6,7 +6,7 @@ let package = Package(
   name: "Runner",
 
   platforms: [
-    .macOS(.v10_15),
+    .macOS(.v12),
     .iOS(.v15),
     .watchOS(.v8),
     .tvOS(.v15),

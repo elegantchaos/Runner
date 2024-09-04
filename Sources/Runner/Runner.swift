@@ -20,6 +20,8 @@ open class Runner {
     case capture
     /// Capture the output and forward it to stdout/stderr.
     case both
+    /// Discard the output.
+    case discard
   }
 
   /// Initialise with an explicit URL to the executable.
@@ -65,8 +67,10 @@ open class Runner {
   }
 
   public struct RunningProcess: Sendable {
-    public let stdout: Pipe.AsyncBytes
-    public let stderr: Pipe.AsyncBytes
+    public let outInfo: PipeInfo
+    public let errInfo: PipeInfo
+    public var stdout: Pipe.AsyncBytes { outInfo.bytes }
+    public var stderr: Pipe.AsyncBytes { errInfo.bytes }
     public let state: RunState.Sequence
 
     /// Check the state of the process and throw an error if it failed.
@@ -96,44 +100,84 @@ open class Runner {
     process.arguments = arguments
     process.environment = environment
 
-    let stdout = byteStream(
-      for: &process.standardOutput, mode: stdoutMode, forwardingTo: FileHandle.standardOutput)
+    let stdout = PipeInfo(mode: stdoutMode, equivalent: FileHandle.standardOutput)
+    process.standardOutput = stdout.pipe ?? stdout.handle
+    let stderr = PipeInfo(mode: stderrMode, equivalent: FileHandle.standardError)
+    process.standardError = stderr.pipe ?? stderr.handle
 
-    let stderr = byteStream(
-      for: &process.standardError, mode: stderrMode, forwardingTo: FileHandle.standardError)
+    let state = RunState.Sequence(process: process) {
+      stdout.cleanup()
+      stderr.cleanup()
 
-    let state = RunState.Sequence(process: process)
-    let result = RunningProcess(stdout: stdout, stderr: stderr, state: state)
+      let s: RunState
+      switch process.terminationReason {
+      case .exit:
+        s = process.terminationStatus == 0 ? .succeeded : .failed(process.terminationStatus)
+      case .uncaughtSignal:
+        s = .uncaughtSignal
+      default:
+        s = .unknown
+      }
+
+      return s
+    }
+
+    let result = RunningProcess(outInfo: stdout, errInfo: stderr, state: state)
 
     try process.run()
 
     return result
   }
 
-  /// Return a byte stream for the given mode.
-  /// If the mode is .forward, the process pipe is set to the forwardingHandle.
-  /// If the mode is .capture, the process pipe is set to a new pipe.
-  /// If the mode is .both, the process pipe is set to a new pipe, and the byte stream
-  /// is set up to also forward to the forwardingHandle.
-  private func byteStream(
-    for processPipe: inout Any?, mode: Mode, forwardingTo forwardHandle: FileHandle
-  )
-    -> Pipe
-    .AsyncBytes
-  {
-    switch mode {
-    case .forward:
-      processPipe = forwardHandle
-      return Pipe.noBytes
-    case .capture:
+  public struct PipeInfo: Sendable {
+    let pipe: Pipe?
+    let handle: FileHandle?
+    let bytes: Pipe.AsyncBytes
 
-      let pipe = Pipe()
-      processPipe = pipe
-      return pipe.bytes
-    case .both:
-      let pipe = Pipe()
-      processPipe = pipe
-      return pipe.bytesForwardingTo(forwardHandle)
+    /// Return a byte stream for the given mode.
+    /// If the mode is .forward, the process pipe is set to the forwardingHandle.
+    /// If the mode is .capture, the process pipe is set to a new pipe.
+    /// If the mode is .both, the process pipe is set to a new pipe, and the byte stream
+    /// is set up to also forward to the forwardingHandle.
+    init(
+      mode: Mode, equivalent forwardHandle: FileHandle
+    )
+
+    {
+      switch mode {
+      case .forward:
+        pipe = nil
+        handle = forwardHandle
+        bytes = Pipe.noBytes
+
+      case .capture:
+        pipe = Pipe()
+        handle = pipe!.fileHandleForReading
+        bytes = pipe!.bytes
+
+      case .both:
+        pipe = Pipe()
+        handle = pipe!.fileHandleForReading
+        bytes = pipe!.bytesForwardingTo(forwardHandle)
+
+      case .discard:
+        pipe = nil
+        handle = FileHandle.nullDevice
+        bytes = Pipe.noBytes
+      }
     }
+
+    static let standardHandles = [
+      FileHandle.standardInput, FileHandle.standardOutput, FileHandle.standardError,
+      FileHandle.nullDevice,
+    ]
+
+    internal func cleanup() {
+      if !Self.standardHandles.contains(handle!) {
+        handle?.closeFile()
+      }
+    }
+
   }
+
 }
