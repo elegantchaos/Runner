@@ -72,11 +72,22 @@ open class Runner {
     exit(process.terminationStatus)
   }
 
-  public struct RunningProcess: Sendable {
-    public let outInfo: PipeInfo
-    public let errInfo: PipeInfo
+  public struct Session: Sendable {
+    /// Internal info about the output from the process.
+    internal let outInfo: ProcessStream
+
+    /// Internal info about the error output from the process.
+    internal let errInfo: ProcessStream
+
+    /// Byte stream of the captured output.
     public var stdout: Pipe.AsyncBytes { outInfo.bytes }
+
+    /// Byte stream of the captured error output.
     public var stderr: Pipe.AsyncBytes { errInfo.bytes }
+
+    /// One-shot stream of the state of the process.
+    /// This will only ever yield one value, and then complete.
+    /// You can await this value if you want to wait for the process to finish.
     public let state: RunState.Sequence
 
     /// Check the state of the process and perform an action if it failed.
@@ -111,6 +122,7 @@ open class Runner {
       if s != .succeeded {
         debug("failed")
         let error = await e()
+        debug("throwing \(error)")
         throw error
       }
     }
@@ -123,7 +135,7 @@ open class Runner {
 
   public func run(
     _ arguments: [String] = [], stdoutMode: Mode = .capture, stderrMode: Mode = .capture
-  ) throws -> RunningProcess {
+  ) throws -> Session {
 
     let process = Process()
     if let cwd = cwd {
@@ -133,39 +145,42 @@ open class Runner {
     process.arguments = arguments
     process.environment = environment
 
-    let stdout = PipeInfo(mode: stdoutMode, equivalent: FileHandle.standardOutput)
+    let stdout = ProcessStream(mode: stdoutMode, standardHandle: FileHandle.standardOutput)
     process.standardOutput = stdout.pipe ?? stdout.handle
-    let stderr = PipeInfo(mode: stderrMode, equivalent: FileHandle.standardError)
+    let stderr = ProcessStream(mode: stderrMode, standardHandle: FileHandle.standardError)
     process.standardError = stderr.pipe ?? stderr.handle
 
     let state = RunState.Sequence(process: process)
 
-    let result = RunningProcess(outInfo: stdout, errInfo: stderr, state: state)
+    let session = Session(outInfo: stdout, errInfo: stderr, state: state)
 
     try process.run()
 
-    return result
+    return session
   }
 
-  public struct PipeInfo: Sendable {
+  public struct ProcessStream: Sendable {
+    /// A custom pipe to capture output, if we're in capture mode.
     let pipe: Pipe?
+
+    /// The file to capture output, if we're not capturing.
     let handle: FileHandle?
+
+    /// Byte stream of the captured output.
+    /// If we're not capturing, this will be a no-op stream that's empty
+    /// so that client code has a consistent interface to work with.
     let bytes: Pipe.AsyncBytes
 
     /// Return a byte stream for the given mode.
-    /// If the mode is .forward, the process pipe is set to the forwardingHandle.
-    /// If the mode is .capture, the process pipe is set to a new pipe.
-    /// If the mode is .both, the process pipe is set to a new pipe, and the byte stream
-    /// is set up to also forward to the forwardingHandle.
-    init(
-      mode: Mode, equivalent forwardHandle: FileHandle
-    )
-
-    {
+    /// If the mode is .forward, we use the standard handle for the process.
+    /// If the mode is .capture, we make a new pipe and use that.
+    /// If the mode is .both, we make a new pipe and set it up to forward to the standard handle.
+    /// If the mode is .discard, we use /dev/null.
+    init(mode: Mode, standardHandle: FileHandle) {
       switch mode {
       case .forward:
         pipe = nil
-        handle = forwardHandle
+        handle = standardHandle
         bytes = Pipe.noBytes
 
       case .capture:
@@ -176,7 +191,7 @@ open class Runner {
       case .both:
         pipe = Pipe()
         handle = pipe!.fileHandleForReading
-        bytes = pipe!.bytesForwardingTo(forwardHandle)
+        bytes = pipe!.bytesForwardingTo(standardHandle)
 
       case .discard:
         pipe = nil

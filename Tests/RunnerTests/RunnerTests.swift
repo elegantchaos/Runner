@@ -120,37 +120,22 @@ import Testing
 
 enum TestErrors: Swift.Error {
 
-  case noOutput(Runner.RunningProcess)
-  case boom(String)
+  case badParameters(String)
 }
 
-/// Test xcodebuild which has some weird buffering issues.
+/// Regression test for xcodebuild which triggered a deadlock in an earlier implementation.
 @Test func testXcodeBuild() async throws {
-  print("testing xcode")
   let runner = Runner(command: "xcodebuild")
   let result = try! runner.run([])
 
-  // async let output = String(result.stdout)
-  // async let error = String(result.stderr)
-
-  // for await state in result.state {
-  //   #expect(state == .failed(66))
-  // }
-  // try await result.throwIfFailed(TestErrors.noOutput(result))
-
   do {
-    // try await result.throwIfFailed(TestErrors.noOutput(result))
-    try await result.throwIfFailed(TestErrors.boom(await String(result.stderr)))
+    try await result.throwIfFailed(TestErrors.badParameters(await String(result.stderr)))
+  } catch TestErrors.badParameters(let message) {
+    #expect(message.contains("Runner does not contain an Xcode project."))
   } catch {
-    print("caught error \(error)")
+    #expect(error is TestErrors)
   }
 
-  // try await result.ifFailed {
-  //   print(await String(result.stdout))
-  //   print(await String(result.stderr))
-  // }
-
-  print("out: \(await String(result.stdout))")
-  print("err: \(await String(result.stderr))")
-
+  let output = await String(result.stdout)
+  #expect(output.contains("Command line invocation:"))
 }
