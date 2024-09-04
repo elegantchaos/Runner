@@ -13,6 +13,10 @@ open class Runner {
   let executable: URL
   public var cwd: URL?
 
+  static internal func log(_ message: String) {
+    print(message)
+  }
+
   public enum Mode {
     /// Forward the output to stdout/stderr.
     case forward
@@ -73,19 +77,39 @@ open class Runner {
     public var stderr: Pipe.AsyncBytes { errInfo.bytes }
     public let state: RunState.Sequence
 
-    /// Check the state of the process and throw an error if it failed.
-    public func throwIfFailed(_ e: () async -> Error) async throws {
-      print("checking state")
+    /// Check the state of the process and perform an action if it failed.
+    nonisolated public func ifFailed(_ e: @Sendable @escaping () async -> Void) async throws {
+      log("checking state")
       var s: RunState?
       for await state in self.state {
         s = state
         break
       }
 
-      print("got state")
+      log("got state")
       if s != .succeeded {
-        print("failed")
-        throw await e()
+        log("failed")
+        Task.detached {
+          await e()
+        }
+      }
+    }
+
+    /// Check the state of the process and throw an error if it failed.
+    public func throwIfFailed(_ e: @autoclosure @Sendable @escaping () async -> Error) async throws
+    {
+      log("checking state")
+      var s: RunState?
+      for await state in self.state {
+        s = state
+        break
+      }
+
+      log("got state")
+      if s != .succeeded {
+        log("failed")
+        let error = await e()
+        throw error
       }
     }
   }
@@ -180,10 +204,10 @@ open class Runner {
     ]
 
     internal func cleanup() {
-      if let handle, !Self.standardHandles.contains(handle) {
-        handle.closeFile()
-        print("cleaned up \(handle)")
-      }
+      // if let handle, !Self.standardHandles.contains(handle) {
+      //   handle.closeFile()
+      //   log("cleaned up \(handle)")
+      // }
     }
 
   }

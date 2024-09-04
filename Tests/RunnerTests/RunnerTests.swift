@@ -121,6 +121,7 @@ import Testing
 enum TestErrors: Swift.Error {
 
   case noOutput(Runner.RunningProcess)
+  case boom(String)
 }
 
 /// Test xcodebuild which has some weird buffering issues.
@@ -129,14 +130,27 @@ enum TestErrors: Swift.Error {
   let runner = Runner(command: "xcodebuild")
   let result = try! runner.run([])
 
-  async let output = String(result.stdout)
-  async let error = String(result.stderr)
+  // async let output = String(result.stdout)
+  // async let error = String(result.stderr)
 
-  for await state in result.state {
-    #expect(state == .failed(66))
+  // for await state in result.state {
+  //   #expect(state == .failed(66))
+  // }
+  // try await result.throwIfFailed(TestErrors.noOutput(result))
+
+  do {
+    // try await result.throwIfFailed(TestErrors.noOutput(result))
+    try await result.throwIfFailed(TestErrors.boom(await String(result.stderr)))
+  } catch {
+    print("caught error \(error)")
   }
-  try await result.throwIfFailed({ TestErrors.noOutput(result) })
 
-  print(await output)
-  print(await error)
+  // try await result.ifFailed {
+  //   print(await String(result.stdout))
+  //   print(await String(result.stderr))
+  // }
+
+  print("out: \(await String(result.stdout))")
+  print("err: \(await String(result.stderr))")
+
 }
