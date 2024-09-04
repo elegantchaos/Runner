@@ -7,6 +7,15 @@
 import ChaosByteStreams
 import Foundation
 
+public protocol RunnerError: Error {
+  func description(for session: Runner.Session) async -> String
+}
+
+public struct WrappedError: Error, CustomStringConvertible, Sendable {
+  public let error: Error
+  public let description: String
+}
+
 open class Runner {
 
   var environment: [String: String]
@@ -109,7 +118,8 @@ open class Runner {
     }
 
     /// Check the state of the process and throw an error if it failed.
-    public func throwIfFailed(_ e: @autoclosure @Sendable @escaping () async -> Error) async throws
+    public func throwIfFailed(_ e: @autoclosure @Sendable @escaping () async -> Error)
+      async throws
     {
       debug("checking state")
       var s: RunState?
@@ -117,11 +127,16 @@ open class Runner {
         s = state
         break
       }
+      debug("state is \(String(describing: s))")
 
-      debug("got state")
       if s != .succeeded {
         debug("failed")
-        let error = await e()
+        var error = await e()
+        if let e = error as? RunnerError {
+          let d = await e.description(for: self)
+          error = WrappedError(error: error, description: d)
+        }
+
         debug("throwing \(error)")
         throw error
       }
