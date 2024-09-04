@@ -15,13 +15,14 @@ public enum RunState: Comparable {
     public func makeAsyncIterator() -> AsyncStream<RunState>.Iterator {
       AsyncStream { continuation in
         process.terminationHandler = { process in
+          print("process terminated")
           let finalState = self.onTermination()
           continuation.yield(finalState)
           continuation.finish()
         }
 
-        continuation.onTermination = { _ in
-
+        continuation.onTermination = { termination in
+          print("continuation terminated \(termination)")
         }
       }.makeAsyncIterator()
     }

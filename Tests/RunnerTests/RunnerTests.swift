@@ -117,3 +117,26 @@ import Testing
   }
 
 }
+
+enum TestErrors: Swift.Error {
+
+  case noOutput(Runner.RunningProcess)
+}
+
+/// Test xcodebuild which has some weird buffering issues.
+@Test func testXcodeBuild() async throws {
+  print("testing xcode")
+  let runner = Runner(command: "xcodebuild")
+  let result = try! runner.run([])
+
+  async let output = String(result.stdout)
+  async let error = String(result.stderr)
+
+  for await state in result.state {
+    #expect(state == .failed(66))
+  }
+  try await result.throwIfFailed({ TestErrors.noOutput(result) })
+
+  print(await output)
+  print(await error)
+}

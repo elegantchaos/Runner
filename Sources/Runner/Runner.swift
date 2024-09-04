@@ -74,11 +74,18 @@ open class Runner {
     public let state: RunState.Sequence
 
     /// Check the state of the process and throw an error if it failed.
-    public func throwIfFailed(_ e: @autoclosure () async -> Error) async throws {
+    public func throwIfFailed(_ e: () async -> Error) async throws {
+      print("checking state")
+      var s: RunState?
       for await state in self.state {
-        if state != .succeeded {
-          throw await e()
-        }
+        s = state
+        break
+      }
+
+      print("got state")
+      if s != .succeeded {
+        print("failed")
+        throw await e()
       }
     }
   }
@@ -173,8 +180,9 @@ open class Runner {
     ]
 
     internal func cleanup() {
-      if !Self.standardHandles.contains(handle!) {
-        handle?.closeFile()
+      if let handle, !Self.standardHandles.contains(handle) {
+        handle.closeFile()
+        print("cleaned up \(handle)")
       }
     }
 
