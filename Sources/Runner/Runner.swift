@@ -13,8 +13,10 @@ open class Runner {
   let executable: URL
   public var cwd: URL?
 
-  static internal func log(_ message: String) {
-    print(message)
+  static internal func debug(_ message: String) {
+    #if RUNNER_LOGGING
+      print(message)
+    #endif
   }
 
   public enum Mode {
@@ -79,16 +81,16 @@ open class Runner {
 
     /// Check the state of the process and perform an action if it failed.
     nonisolated public func ifFailed(_ e: @Sendable @escaping () async -> Void) async throws {
-      log("checking state")
+      debug("checking state")
       var s: RunState?
       for await state in self.state {
         s = state
         break
       }
 
-      log("got state")
+      debug("got state")
       if s != .succeeded {
-        log("failed")
+        debug("failed")
         Task.detached {
           await e()
         }
@@ -98,16 +100,16 @@ open class Runner {
     /// Check the state of the process and throw an error if it failed.
     public func throwIfFailed(_ e: @autoclosure @Sendable @escaping () async -> Error) async throws
     {
-      log("checking state")
+      debug("checking state")
       var s: RunState?
       for await state in self.state {
         s = state
         break
       }
 
-      log("got state")
+      debug("got state")
       if s != .succeeded {
-        log("failed")
+        debug("failed")
         let error = await e()
         throw error
       }
@@ -136,22 +138,7 @@ open class Runner {
     let stderr = PipeInfo(mode: stderrMode, equivalent: FileHandle.standardError)
     process.standardError = stderr.pipe ?? stderr.handle
 
-    let state = RunState.Sequence(process: process) {
-      stdout.cleanup()
-      stderr.cleanup()
-
-      let s: RunState
-      switch process.terminationReason {
-      case .exit:
-        s = process.terminationStatus == 0 ? .succeeded : .failed(process.terminationStatus)
-      case .uncaughtSignal:
-        s = .uncaughtSignal
-      default:
-        s = .unknown
-      }
-
-      return s
-    }
+    let state = RunState.Sequence(process: process)
 
     let result = RunningProcess(outInfo: stdout, errInfo: stderr, state: state)
 
@@ -202,14 +189,6 @@ open class Runner {
       FileHandle.standardInput, FileHandle.standardOutput, FileHandle.standardError,
       FileHandle.nullDevice,
     ]
-
-    internal func cleanup() {
-      // if let handle, !Self.standardHandles.contains(handle) {
-      //   handle.closeFile()
-      //   log("cleaned up \(handle)")
-      // }
-    }
-
   }
 
 }

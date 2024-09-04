@@ -10,19 +10,28 @@ public enum RunState: Comparable {
   public struct Sequence: AsyncSequence, Sendable {
     /// The process we're reporting on.
     let process: Process
-    let onTermination: @Sendable () -> RunState
 
     public func makeAsyncIterator() -> AsyncStream<RunState>.Iterator {
       AsyncStream { continuation in
         process.terminationHandler = { process in
-          print("process terminated")
-          let finalState = self.onTermination()
+          Runner.debug("process terminated")
+          let finalState: RunState
+          switch process.terminationReason {
+          case .exit:
+            finalState =
+              process.terminationStatus == 0 ? .succeeded : .failed(process.terminationStatus)
+          case .uncaughtSignal:
+            finalState = .uncaughtSignal
+          default:
+            finalState = .unknown
+          }
+
           continuation.yield(finalState)
           continuation.finish()
         }
 
         continuation.onTermination = { termination in
-          print("continuation terminated \(termination)")
+          Runner.debug("continuation terminated \(termination)")
         }
       }.makeAsyncIterator()
     }
