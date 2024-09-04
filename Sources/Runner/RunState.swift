@@ -1,3 +1,8 @@
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//  Created by Sam Deane on 04/09/24.
+//  All code (c) 2024 - present day, Elegant Chaos Limited.
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 import Foundation
 
 public enum RunState: Comparable {
@@ -17,13 +22,13 @@ public enum RunState: Comparable {
           Runner.debug("process terminated")
           let finalState: RunState
           switch process.terminationReason {
-          case .exit:
-            finalState =
-              process.terminationStatus == 0 ? .succeeded : .failed(process.terminationStatus)
-          case .uncaughtSignal:
-            finalState = .uncaughtSignal
-          default:
-            finalState = .unknown
+            case .exit:
+              finalState =
+                process.terminationStatus == 0 ? .succeeded : .failed(process.terminationStatus)
+            case .uncaughtSignal:
+              finalState = .uncaughtSignal
+            default:
+              finalState = .unknown
           }
 
           continuation.yield(finalState)

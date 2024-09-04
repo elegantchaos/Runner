@@ -7,27 +7,24 @@
 import ChaosByteStreams
 import Foundation
 
-public protocol RunnerError: Error {
-  func description(for session: Runner.Session) async -> String
-}
-
-public struct WrappedError: Error, CustomStringConvertible, Sendable {
-  public let error: Error
-  public let description: String
-}
-
 open class Runner {
-
+  /// The environment to run the command in.
   var environment: [String: String]
+
+  /// The URL of the executable to run.
   let executable: URL
+
+  /// The current working directory to run the command in.
   public var cwd: URL?
 
+  /// Log a message if internal logging is enabled.
   static internal func debug(_ message: String) {
     #if RUNNER_LOGGING
       print(message)
     #endif
   }
 
+  /// The mode for handling output from the process.
   public enum Mode {
     /// Forward the output to stdout/stderr.
     case forward
@@ -60,94 +57,8 @@ open class Runner {
     self.cwd = cwd
   }
 
-  /// Invoke a command and some optional arguments.
-  /// Control is transferred to the launched process, and this function doesn't return.
-  public func exec(arguments: [String] = []) -> Never {
-    let process = Process()
-    if let cwd = cwd {
-      process.currentDirectoryURL = cwd
-    }
-
-    process.executableURL = executable
-    process.arguments = arguments
-    process.environment = environment
-    do {
-      try process.run()
-    } catch {
-      fatalError("Failed to launch \(executable).\n\n\(error)")
-    }
-
-    process.waitUntilExit()
-    exit(process.terminationStatus)
-  }
-
-  public struct Session: Sendable {
-    /// Internal info about the output from the process.
-    internal let outInfo: ProcessStream
-
-    /// Internal info about the error output from the process.
-    internal let errInfo: ProcessStream
-
-    /// Byte stream of the captured output.
-    public var stdout: Pipe.AsyncBytes { outInfo.bytes }
-
-    /// Byte stream of the captured error output.
-    public var stderr: Pipe.AsyncBytes { errInfo.bytes }
-
-    /// One-shot stream of the state of the process.
-    /// This will only ever yield one value, and then complete.
-    /// You can await this value if you want to wait for the process to finish.
-    public let state: RunState.Sequence
-
-    /// Check the state of the process and perform an action if it failed.
-    nonisolated public func ifFailed(_ e: @Sendable @escaping () async -> Void) async throws {
-      debug("checking state")
-      var s: RunState?
-      for await state in self.state {
-        s = state
-        break
-      }
-
-      debug("got state")
-      if s != .succeeded {
-        debug("failed")
-        Task.detached {
-          await e()
-        }
-      }
-    }
-
-    /// Check the state of the process and throw an error if it failed.
-    public func throwIfFailed(_ e: @autoclosure @Sendable @escaping () async -> Error)
-      async throws
-    {
-      debug("checking state")
-      var s: RunState?
-      for await state in self.state {
-        s = state
-        break
-      }
-      debug("state is \(String(describing: s))")
-
-      if s != .succeeded {
-        debug("failed")
-        var error = await e()
-        if let e = error as? RunnerError {
-          let d = await e.description(for: self)
-          error = WrappedError(error: error, description: d)
-        }
-
-        debug("throwing \(error)")
-        throw error
-      }
-    }
-  }
-
-  /**
-     Invoke a command and some optional arguments asynchronously.
-     Returns the running process.
-     */
-
+  /// Invoke a command and some optional arguments asynchronously.
+  /// Returns the running process.
   public func run(
     _ arguments: [String] = [], stdoutMode: Mode = .capture, stderrMode: Mode = .capture
   ) throws -> Session {
@@ -174,51 +85,25 @@ open class Runner {
     return session
   }
 
-  public struct ProcessStream: Sendable {
-    /// A custom pipe to capture output, if we're in capture mode.
-    let pipe: Pipe?
-
-    /// The file to capture output, if we're not capturing.
-    let handle: FileHandle?
-
-    /// Byte stream of the captured output.
-    /// If we're not capturing, this will be a no-op stream that's empty
-    /// so that client code has a consistent interface to work with.
-    let bytes: Pipe.AsyncBytes
-
-    /// Return a byte stream for the given mode.
-    /// If the mode is .forward, we use the standard handle for the process.
-    /// If the mode is .capture, we make a new pipe and use that.
-    /// If the mode is .both, we make a new pipe and set it up to forward to the standard handle.
-    /// If the mode is .discard, we use /dev/null.
-    init(mode: Mode, standardHandle: FileHandle) {
-      switch mode {
-      case .forward:
-        pipe = nil
-        handle = standardHandle
-        bytes = Pipe.noBytes
-
-      case .capture:
-        pipe = Pipe()
-        handle = pipe!.fileHandleForReading
-        bytes = pipe!.bytes
-
-      case .both:
-        pipe = Pipe()
-        handle = pipe!.fileHandleForReading
-        bytes = pipe!.bytesForwardingTo(standardHandle)
-
-      case .discard:
-        pipe = nil
-        handle = FileHandle.nullDevice
-        bytes = Pipe.noBytes
-      }
+  /// Invoke a command and some optional arguments.
+  /// Control is transferred to the launched process, and this function doesn't return.
+  public func exec(arguments: [String] = []) -> Never {
+    let process = Process()
+    if let cwd = cwd {
+      process.currentDirectoryURL = cwd
     }
 
-    static let standardHandles = [
-      FileHandle.standardInput, FileHandle.standardOutput, FileHandle.standardError,
-      FileHandle.nullDevice,
-    ]
-  }
+    process.executableURL = executable
+    process.arguments = arguments
+    process.environment = environment
 
+    do {
+      try process.run()
+    } catch {
+      fatalError("Failed to launch \(executable).\n\n\(error)")
+    }
+
+    process.waitUntilExit()
+    exit(process.terminationStatus)
+  }
 }
