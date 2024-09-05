@@ -65,7 +65,9 @@ open class Runner {
     process.standardOutput = stdout.pipe ?? stdout.handle
     let stderr = ProcessStream(mode: stderrMode, standardHandle: FileHandle.standardError)
     process.standardError = stderr.pipe ?? stderr.handle
-    let state = RunState.Sequence(process: process).makeStream()
+    let state = RunState.Sequence(
+      process: process, outwriter: { d in print("out") }, errwriter: { d in print("err") }
+    ).makeStream()
     let session = Session(outInfo: stdout, errInfo: stderr, state: state)
 
     return session

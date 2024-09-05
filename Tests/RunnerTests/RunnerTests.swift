@@ -11,11 +11,11 @@ import Testing
   #expect(result.stdout != nil)
   #expect(result.stderr != nil)
 
-  for await l in result.stdout.lines {
+  for try await l in result.stdout.lines {
     #expect(l == "stdout")
   }
 
-  for await l in result.stderr.lines {
+  for try await l in result.stderr.lines {
     #expect(l == "stderr")
   }
 
@@ -33,11 +33,11 @@ import Testing
   #expect(result.stdout != nil)
   #expect(result.stderr != nil)
 
-  for await l in result.stdout.lines {
+  for try await l in result.stdout.lines {
     #expect(l == "stdout")
   }
 
-  for await l in result.stderr.lines {
+  for try await l in result.stderr.lines {
     #expect(l == "stderr")
   }
 
@@ -56,7 +56,7 @@ import Testing
   #expect(result.stderr != nil)
 
   var expected = ["hello", "goodbye"]
-  for await l in result.stdout.lines {
+  for try await l in result.stdout.lines {
     #expect(l == expected.removeFirst())
   }
   #expect(expected.isEmpty)
@@ -75,11 +75,11 @@ import Testing
   #expect(result.stdout != nil)
   #expect(result.stderr != nil)
 
-  for await l in result.stdout.lines {
+  for try await l in result.stdout.lines {
     #expect(l == "stdout")
   }
 
-  for await l in result.stderr.lines {
+  for try await l in result.stderr.lines {
     #expect(l == "stderr")
   }
 
@@ -94,15 +94,15 @@ import Testing
   let runner = Runner(for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!)
   let result = runner.run(stdoutMode: .forward, stderrMode: .forward)
 
-  for await _ in result.stdout {
+  for try await _ in result.stdout {
     #expect(Bool(false), "shouldn't be any content")
   }
 
-  for await _ in result.stderr {
+  for try await _ in result.stderr {
     #expect(Bool(false), "shouldn't be any content")
   }
 
-  for await state in result.state {
+  for try await state in result.state {
     #expect(state == .succeeded)
   }
 }
@@ -112,7 +112,7 @@ import Testing
   let runner = Runner(for: Bundle.module.url(forResource: "args", withExtension: "sh")!)
   let result = runner.run(["arg1", "arg2"])
 
-  for await line in result.stdout.lines {
+  for try await line in result.stdout.lines {
     #expect(line == "args arg1 arg2")
   }
 
@@ -138,4 +138,32 @@ enum TestErrors: Swift.Error {
 
   let output = await String(result.stdout)
   #expect(output.contains("Command line invocation:"))
+}
+
+@Test func testRegression() async throws {
+  let xcode = Runner(command: "xcodebuild")
+  xcode.cwd = URL(fileURLWithPath: "/Users/sam/Developer/Projects/Stack")
+  let args = [
+    "-workspace", "Stack.xcworkspace", "-scheme", "Stack", "archive", "-archivePath",
+    "/Users/sam/Developer/Projects/Stack/.build/macOS/archive.xcarchive",
+    "-allowProvisioningUpdates",
+    "INFOPLIST_PREFIX_HEADER=/Users/sam/Developer/Projects/Stack/.build/macOS/VersionInfo.h",
+    "INFOPLIST_PREPROCESS=YES", "CURRENT_PROJECT_VERSION=25",
+  ]
+
+  let result = xcode.run(args, stdoutMode: .both, stderrMode: .both)
+  // print(await String(result.stdout))
+  // print(await String(result.stderr))
+  try await result.throwIfFailed(ArchiveError.archiveFailed)
+}
+
+enum ArchiveError: RunnerError {
+  case archiveFailed
+
+  func description(for session: Runner.Session) async -> String {
+    async let stderr = String(session.stderr)
+    switch self {
+      case .archiveFailed: return "Archiving failed.\n\n\(await stderr)"
+    }
+  }
 }

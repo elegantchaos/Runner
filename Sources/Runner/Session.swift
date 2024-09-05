@@ -16,10 +16,10 @@ extension Runner {
     internal let errInfo: ProcessStream
 
     /// Byte stream of the captured output.
-    public var stdout: Pipe.AsyncBytes { outInfo.bytes }
+    public var stdout: ProcessStream.ByteStream { outInfo.bytes }
 
     /// Byte stream of the captured error output.
-    public var stderr: Pipe.AsyncBytes { errInfo.bytes }
+    public var stderr: ProcessStream.ByteStream { errInfo.bytes }
 
     /// One-shot stream of the state of the process.
     /// This will only ever yield one value, and then complete.
@@ -50,7 +50,7 @@ extension Runner {
     ///
     /// The error is allowed to be nil, in which case no error is thrown.
     /// This is useful if you want to throw an error only in certain circumstances.
-    nonisolated public func throwIfFailed(_ e: @autoclosure @Sendable @escaping () async -> Error?)
+    public func throwIfFailed(_ e: @autoclosure @Sendable @escaping () async -> Error?)
       async throws
     {
       debug("checking state")

@@ -16,21 +16,27 @@ public enum RunState: Comparable, Sendable {
   public struct Sequence: AsyncSequence, Sendable {
     /// The runner we're reporting on.
     let process: Process
+    let outwriter: @Sendable (Data?) -> Void
+    let errwriter: @Sendable (Data?) -> Void
 
     public func makeAsyncIterator() -> AsyncStream<RunState>.Iterator {
       return makeStream().makeAsyncIterator()
     }
 
     public func makeStream() -> AsyncStream<RunState> {
-      print("makeIterator")
+      print("makeIterator wibble")
       return AsyncStream { continuation in
         print("registering callback")
         process.terminationHandler = { _ in
+          print("terminated")
           cleanup(stream: process.standardOutput, name: "stdout")
           cleanup(stream: process.standardError, name: "stderr")
           continuation.yield(process.finalState)
           continuation.finish()
         }
+
+        setupWriter(stream: process.standardOutput, writer: outwriter)
+        setupWriter(stream: process.standardError, writer: errwriter)
 
         do {
           try process.run()
@@ -47,10 +53,24 @@ public enum RunState: Comparable, Sendable {
     }
 
     func cleanup(stream: Any?, name: String) {
-      let handle = (stream as? Pipe)?.fileHandleForWriting ?? (stream as? FileHandle)
+      let handle = (stream as? Pipe)?.fileHandleForReading ?? (stream as? FileHandle)
       if let handle {
         print("syncing \(name)")
         try? handle.synchronize()
+      }
+    }
+
+    func setupWriter(stream: Any?, writer: @Sendable @escaping (Data?) -> Void) {
+      if let p = stream as? Pipe {
+        p.fileHandleForReading.readabilityHandler = { handle in
+          let data = handle.availableData
+          if data.isEmpty {
+            handle.readabilityHandler = nil
+            writer(nil)
+          } else {
+            writer(data)
+          }
+        }
       }
     }
   }
