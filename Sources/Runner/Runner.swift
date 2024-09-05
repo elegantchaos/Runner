@@ -19,21 +19,7 @@ open class Runner {
 
   /// Log a message if internal logging is enabled.
   static internal func debug(_ message: String) {
-    #if RUNNER_LOGGING
-      print(message)
-    #endif
-  }
-
-  /// The mode for handling output from the process.
-  public enum Mode {
-    /// Forward the output to stdout/stderr.
-    case forward
-    /// Capture the output.
-    case capture
-    /// Capture the output and forward it to stdout/stderr.
-    case both
-    /// Discard the output.
-    case discard
+    print(message)
   }
 
   /// Initialise with an explicit URL to the executable.
@@ -58,10 +44,14 @@ open class Runner {
   }
 
   /// Invoke a command and some optional arguments asynchronously.
-  /// Returns the running process.
+  /// Returns a running session which contains three async streams.
+  /// The first stream is the stdout output of the process.
+  /// The second stream is the stderr output of the process.
+  /// The third stream is the state of the process.
   public func run(
-    _ arguments: [String] = [], stdoutMode: Mode = .capture, stderrMode: Mode = .capture
-  ) throws -> Session {
+    _ arguments: [String] = [], stdoutMode: ProcessStream.Mode = .capture,
+    stderrMode: ProcessStream.Mode = .capture
+  ) -> Session {
 
     let process = Process()
     if let cwd = cwd {
@@ -75,12 +65,8 @@ open class Runner {
     process.standardOutput = stdout.pipe ?? stdout.handle
     let stderr = ProcessStream(mode: stderrMode, standardHandle: FileHandle.standardError)
     process.standardError = stderr.pipe ?? stderr.handle
-
-    let state = RunState.Sequence(process: process)
-
+    let state = RunState.Sequence(process: process).makeStream()
     let session = Session(outInfo: stdout, errInfo: stderr, state: state)
-
-    try process.run()
 
     return session
   }

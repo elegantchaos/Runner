@@ -5,40 +5,70 @@
 
 import Foundation
 
-public enum RunState: Comparable {
+/// Representation of the state of the process.
+public enum RunState: Comparable, Sendable {
   case succeeded
   case failed(Int32)
   case uncaughtSignal
+  case startup(String)
   case unknown
 
-  /// A one-item sequence reporting the final state of a process.
   public struct Sequence: AsyncSequence, Sendable {
-    /// The process we're reporting on.
+    /// The runner we're reporting on.
     let process: Process
 
     public func makeAsyncIterator() -> AsyncStream<RunState>.Iterator {
-      AsyncStream { continuation in
-        process.terminationHandler = { process in
-          Runner.debug("process terminated")
-          let finalState: RunState
-          switch process.terminationReason {
-            case .exit:
-              finalState =
-                process.terminationStatus == 0 ? .succeeded : .failed(process.terminationStatus)
-            case .uncaughtSignal:
-              finalState = .uncaughtSignal
-            default:
-              finalState = .unknown
-          }
+      return makeStream().makeAsyncIterator()
+    }
 
-          continuation.yield(finalState)
+    public func makeStream() -> AsyncStream<RunState> {
+      print("makeIterator")
+      return AsyncStream { continuation in
+        print("registering callback")
+        process.terminationHandler = { _ in
+          cleanup(stream: process.standardOutput, name: "stdout")
+          cleanup(stream: process.standardError, name: "stderr")
+          continuation.yield(process.finalState)
+          continuation.finish()
+        }
+
+        do {
+          try process.run()
+        } catch {
+          continuation.yield(.startup(String(describing: error)))  // TODO: better to send the error here, but we then need to make RunState Comparable
           continuation.finish()
         }
 
         continuation.onTermination = { termination in
           Runner.debug("continuation terminated \(termination)")
         }
-      }.makeAsyncIterator()
+
+      }
+    }
+
+    func cleanup(stream: Any?, name: String) {
+      let handle = (stream as? Pipe)?.fileHandleForWriting ?? (stream as? FileHandle)
+      if let handle {
+        print("syncing \(name)")
+        try? handle.synchronize()
+      }
+    }
+  }
+
+}
+
+extension Process {
+  /// Return the final state of the process.
+  var finalState: RunState {
+    assert(!isRunning)
+
+    switch terminationReason {
+      case .exit:
+        return terminationStatus == 0 ? .succeeded : .failed(terminationStatus)
+      case .uncaughtSignal:
+        return .uncaughtSignal
+      default:
+        return .unknown
     }
   }
 }

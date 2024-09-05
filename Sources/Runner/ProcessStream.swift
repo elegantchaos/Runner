@@ -3,6 +3,19 @@ import Foundation
 extension Runner {
   /// Helper for managing the output of a process.
   public struct ProcessStream: Sendable {
+
+    /// The mode for handling the stream.
+    public enum Mode {
+      /// Forward the output to stdout/stderr.
+      case forward
+      /// Capture the output.
+      case capture
+      /// Capture the output and forward it to stdout/stderr.
+      case both
+      /// Discard the output.
+      case discard
+    }
+
     /// A custom pipe to capture output, if we're in capture mode.
     let pipe: Pipe?
 
@@ -28,12 +41,12 @@ extension Runner {
 
         case .capture:
           pipe = Pipe()
-          handle = pipe!.fileHandleForReading
+          handle = nil
           bytes = pipe!.bytes
 
         case .both:
           pipe = Pipe()
-          handle = pipe!.fileHandleForReading
+          handle = nil
           bytes = pipe!.bytesForwardingTo(standardHandle)
 
         case .discard:

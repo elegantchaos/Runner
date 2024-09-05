@@ -38,3 +38,8 @@ the $PATH environment variable.
 
 let runner = Runner(command: "name")
 ```
+
+
+## Useful References
+
+- https://developer.apple.com/forums/thread/690310

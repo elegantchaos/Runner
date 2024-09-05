@@ -6,7 +6,7 @@ import Testing
 /// Test with a task that has a zero status.
 @Test func testZeroStatus() async throws {
   let runner = Runner(for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!)
-  let result = try! runner.run()
+  let result = runner.run()
 
   #expect(result.stdout != nil)
   #expect(result.stderr != nil)
@@ -28,7 +28,7 @@ import Testing
 /// Test with a task that has a non-zero status.
 @Test func testNonZeroStatus() async throws {
   let runner = Runner(for: Bundle.module.url(forResource: "non-zero-status", withExtension: "sh")!)
-  let result = try! runner.run()
+  let result = runner.run()
 
   #expect(result.stdout != nil)
   #expect(result.stderr != nil)
@@ -50,7 +50,7 @@ import Testing
 /// and takes a while to complete.
 @Test func testLongRunningStatus() async throws {
   let runner = Runner(for: Bundle.module.url(forResource: "long-running", withExtension: "sh")!)
-  let result = try! runner.run()
+  let result = runner.run()
 
   #expect(result.stdout != nil)
   #expect(result.stderr != nil)
@@ -70,7 +70,7 @@ import Testing
 /// the process output and write it to stdout/stderr.
 @Test func testBothMode() async throws {
   let runner = Runner(for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!)
-  let result = try! runner.run(stdoutMode: .both, stderrMode: .both)
+  let result = runner.run(stdoutMode: .both, stderrMode: .both)
 
   #expect(result.stdout != nil)
   #expect(result.stderr != nil)
@@ -92,7 +92,7 @@ import Testing
 /// the process output, but forward it to stdout/stderr.
 @Test func testPassthroughMode() async throws {
   let runner = Runner(for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!)
-  let result = try! runner.run(stdoutMode: .forward, stderrMode: .forward)
+  let result = runner.run(stdoutMode: .forward, stderrMode: .forward)
 
   for await _ in result.stdout {
     #expect(Bool(false), "shouldn't be any content")
@@ -110,7 +110,7 @@ import Testing
 /// Test passing arguments.
 @Test func testArgs() async throws {
   let runner = Runner(for: Bundle.module.url(forResource: "args", withExtension: "sh")!)
-  let result = try! runner.run(["arg1", "arg2"])
+  let result = runner.run(["arg1", "arg2"])
 
   for await line in result.stdout.lines {
     #expect(line == "args arg1 arg2")
@@ -126,7 +126,7 @@ enum TestErrors: Swift.Error {
 /// Regression test for xcodebuild which triggered a deadlock in an earlier implementation.
 @Test func testXcodeBuild() async throws {
   let runner = Runner(command: "xcodebuild")
-  let result = try! runner.run([])
+  let result = runner.run([], stdoutMode: .both, stderrMode: .both)
 
   do {
     try await result.throwIfFailed(TestErrors.badParameters(await String(result.stderr)))

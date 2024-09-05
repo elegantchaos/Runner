@@ -3,10 +3,11 @@
 //  All code (c) 2024 - present day, Elegant Chaos Limited.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-/// Errors conforming to this protocol can provide a description of themselves
-/// which has access to the session in which they occurred, and so can
-/// include stdout/stderr output, etc.
-public protocol RunnerError: Error {
+/// Errors conforming to this protocol can provide a description of themselves.
+/// The function that returns the description has access to the session in which
+/// the error occurred, and so can use captured output and the termination status
+/// to provide a more detailed error message.
+public protocol RunnerError: Error, Sendable {
   func description(for session: Runner.Session) async -> String
 }
 

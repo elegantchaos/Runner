@@ -24,7 +24,7 @@ extension Runner {
     /// One-shot stream of the state of the process.
     /// This will only ever yield one value, and then complete.
     /// You can await this value if you want to wait for the process to finish.
-    public let state: RunState.Sequence
+    public let state: AsyncStream<RunState>
 
     /// Check the state of the process and perform an action if it failed.
     nonisolated public func ifFailed(_ e: @Sendable @escaping () async -> Void) async throws {
@@ -50,7 +50,7 @@ extension Runner {
     ///
     /// The error is allowed to be nil, in which case no error is thrown.
     /// This is useful if you want to throw an error only in certain circumstances.
-    public func throwIfFailed(_ e: @autoclosure @Sendable @escaping () async -> Error?)
+    nonisolated public func throwIfFailed(_ e: @autoclosure @Sendable @escaping () async -> Error?)
       async throws
     {
       debug("checking state")

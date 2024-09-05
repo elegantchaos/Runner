@@ -34,7 +34,7 @@ let package = Package(
       name: "RunnerTests",
       dependencies: ["Runner"],
       resources: [
-        .copy("Resources")
+        .process("Resources")
       ]
     ),
   ]
