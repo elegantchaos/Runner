@@ -22,20 +22,19 @@ public enum RunState: Comparable, Sendable {
     }
 
     public func makeStream() -> AsyncStream<RunState> {
-      print("makeIterator wibble")
+      Runner.debug("makeIterator")
       return AsyncStream { continuation in
-        print("registering callback")
+        Runner.debug("registering callback")
         process.terminationHandler = { _ in
-          print("terminated")
+          Runner.debug("terminated")
           cleanup(stream: process.standardOutput, name: "stdout")
           cleanup(stream: process.standardError, name: "stderr")
           continuation.yield(process.finalState)
           continuation.finish()
         }
 
-        do {
-          try process.run()
-        } catch {
+        do { try process.run() }
+        catch {
           continuation.yield(.startup(String(describing: error)))  // TODO: better to send the error here, but we then need to make RunState Comparable
           continuation.finish()
         }
@@ -47,27 +46,15 @@ public enum RunState: Comparable, Sendable {
       }
     }
 
-    func cleanup(stream: Any?, name: String) {
-      let handle = (stream as? Pipe)?.fileHandleForReading ?? (stream as? FileHandle)
+    func cleanup(stream: Any?, name: String) {  // TODO: this is probably unnecessary; remove it
+      let handle =
+        (stream as? Pipe)?.fileHandleForReading ?? (stream as? FileHandle)
       if let handle {
-        print("syncing \(name)")
+        Runner.debug("syncing \(name)")
         try? handle.synchronize()
       }
     }
 
-    func setupWriter(stream: Any?, writer: @Sendable @escaping (Data?) -> Void) {
-      if let p = stream as? Pipe {
-        p.fileHandleForReading.readabilityHandler = { handle in
-          let data = handle.availableData
-          if data.isEmpty {
-            handle.readabilityHandler = nil
-            writer(nil)
-          } else {
-            writer(data)
-          }
-        }
-      }
-    }
   }
 
 }
@@ -77,13 +64,10 @@ extension Process {
   var finalState: RunState {
     assert(!isRunning)
 
-    switch terminationReason {
-      case .exit:
-        return terminationStatus == 0 ? .succeeded : .failed(terminationStatus)
-      case .uncaughtSignal:
-        return .uncaughtSignal
-      default:
-        return .unknown
+    switch terminationReason { case .exit:
+      return terminationStatus == 0 ? .succeeded : .failed(terminationStatus)
+      case .uncaughtSignal: return .uncaughtSignal
+      default: return .unknown
     }
   }
 }

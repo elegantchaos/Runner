@@ -18,10 +18,18 @@ open class Runner {
   public var cwd: URL?
 
   /// Log a message if internal logging is enabled.
-  static internal func debug(_ message: String) { print(message) }
+  static internal func debug(_ message: String) {
+    #if DEBUG_RUNNER
+      print(message)
+    #endif
+  }
 
   /// Initialise with an explicit URL to the executable.
-  public init(for executable: URL, cwd: URL? = nil, environment: [String: String] = ProcessInfo.processInfo.environment) {
+  public init(
+    for executable: URL,
+    cwd: URL? = nil,
+    environment: [String: String] = ProcessInfo.processInfo.environment
+  ) {
     self.executable = executable
     self.environment = environment
     self.cwd = cwd
@@ -29,8 +37,15 @@ open class Runner {
 
   /// Initialise with a command name.
   /// The command will be searched for using $PATH.
-  public init(command: String, cwd: URL? = nil, environment: [String: String] = ProcessInfo.processInfo.environment) {
-    self.executable = URL(inSystemPathWithName: command, fallback: "/usr/bin/\(command)")
+  public init(
+    command: String,
+    cwd: URL? = nil,
+    environment: [String: String] = ProcessInfo.processInfo.environment
+  ) {
+    self.executable = URL(
+      inSystemPathWithName: command,
+      fallback: "/usr/bin/\(command)"
+    )
     self.environment = environment
     self.cwd = cwd
   }
@@ -40,7 +55,11 @@ open class Runner {
   /// The first stream is the stdout output of the process.
   /// The second stream is the stderr output of the process.
   /// The third stream is the state of the process.
-  public func run(_ arguments: [String] = [], stdoutMode: ProcessStream.Mode = .capture, stderrMode: ProcessStream.Mode = .capture) -> Session {
+  public func run(
+    _ arguments: [String] = [],
+    stdoutMode: ProcessStream.Mode = .capture,
+    stderrMode: ProcessStream.Mode = .capture
+  ) -> Session {
 
     let process = Process()
     if let cwd = cwd { process.currentDirectoryURL = cwd }
@@ -48,9 +67,15 @@ open class Runner {
     process.arguments = arguments
     process.environment = environment
 
-    let stdout = ProcessStream(mode: stdoutMode, standardHandle: FileHandle.standardOutput)
+    let stdout = ProcessStream(
+      mode: stdoutMode,
+      standardHandle: FileHandle.standardOutput
+    )
     process.standardOutput = stdout.pipe ?? stdout.handle
-    let stderr = ProcessStream(mode: stderrMode, standardHandle: FileHandle.standardError)
+    let stderr = ProcessStream(
+      mode: stderrMode,
+      standardHandle: FileHandle.standardError
+    )
     process.standardError = stderr.pipe ?? stderr.handle
     let state = RunState.Sequence(process: process).makeStream()
     let session = Session(outInfo: stdout, errInfo: stderr, state: state)
@@ -68,7 +93,8 @@ open class Runner {
     process.arguments = arguments
     process.environment = environment
 
-    do { try process.run() } catch { fatalError("Failed to launch \(executable).\n\n\(error)") }
+    do { try process.run() }
+    catch { fatalError("Failed to launch \(executable).\n\n\(error)") }
 
     process.waitUntilExit()
     exit(process.terminationStatus)

@@ -3,6 +3,9 @@ import Foundation
 public actor DataBuffer {
   var data = Data()
   var continuations: [AsyncStream<UInt8>.Continuation] = []
+
+  /// Append data to the buffer.
+  /// We'll notify all continuations that new data is available.
   func append(_ bytes: Data) {
     assert(!bytes.isEmpty)
     data.append(bytes)
@@ -11,27 +14,35 @@ public actor DataBuffer {
     }
   }
 
+  /// Finish the buffer.
+  /// This means that no more data will be added to the buffer.
+  /// We'll notify all continuations that the buffer is done.
   func finish() {
     for continuation in continuations { continuation.finish() }
     continuations.removeAll()
   }
 
+  /// Add a continuation to the buffer.
+  /// We immediately yield all current data in the buffer to the continuation.
+  /// When new data is available, we'll yield it to the continuation.
   func registerContinuation(_ continuation: AsyncStream<UInt8>.Continuation) {
     continuations.append(continuation)
     if !data.isEmpty { for byte in data { continuation.yield(byte) } }
   }
-  func removeContinuation(_ continuation: AsyncStream<UInt8>.Continuation) {
 
-  }
+  func removeContinuation(_ continuation: AsyncStream<UInt8>.Continuation) {}
 
+  /// Return a byte sequence that reads from this buffer.
   func makeBytes() -> AsyncBytes { AsyncBytes(buffer: self) }
-  var bytes: AsyncBytes { AsyncBytes(buffer: self) }
 
+  /// A byte sequence that is empty.
   static var noBytes: AsyncBytes { AsyncBytes(buffer: nil) }
 
+  /// A byte sequence that reads from a buffer.
   public struct AsyncBytes: AsyncSequence, Sendable {
     public typealias Element = UInt8
 
+    /// Buffer we're reading from.
     let buffer: DataBuffer?
 
     /// Make an iterator that reads data from the pipe's file handle
@@ -54,7 +65,6 @@ public actor DataBuffer {
 extension Runner {
   /// Helper for managing the output of a process.
   public struct ProcessStream: Sendable {
-    public typealias ByteStream = Pipe.DispatchAsyncBytes
 
     /// The mode for handling the stream.
     public enum Mode {
