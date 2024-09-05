@@ -5,21 +5,15 @@ import PackageDescription
 let package = Package(
   name: "Runner",
 
-  platforms: [
-    .macOS(.v12),
-    .iOS(.v15),
-    .watchOS(.v8),
-    .tvOS(.v15),
-  ],
+  platforms: [.macOS(.v12), .iOS(.v15), .watchOS(.v8), .tvOS(.v15)],
 
-  products: [
-    .library(
-      name: "Runner",
-      targets: ["Runner"])
-  ],
+  products: [.library(name: "Runner", targets: ["Runner"])],
 
   dependencies: [
-    .package(url: "https://github.com/elegantchaos/ChaosByteStreams", from: "1.0.1")
+    .package(
+      url: "https://github.com/elegantchaos/ChaosByteStreams",
+      from: "1.0.2"
+    )
   ],
 
   targets: [
@@ -33,9 +27,7 @@ let package = Package(
     .testTarget(
       name: "RunnerTests",
       dependencies: ["Runner"],
-      resources: [
-        .process("Resources")
-      ]
+      resources: [.process("Resources")]
     ),
   ]
 )

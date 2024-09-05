@@ -1,13 +1,13 @@
 {
-  "originHash" : "8bb316d26d40658463cd7c075e6075df2e96026f7a0fe05222473a2d3603c8e7",
+  "originHash" : "8a474fd7dfa4e1f459fdee40ed2ef6c013c60db66be55d63d68c298b13299c60",
   "pins" : [
     {
       "identity" : "chaosbytestreams",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/elegantchaos/ChaosByteStreams",
       "state" : {
-        "revision" : "67dadbb9f94a2407a765e2eb6294fa22ac3fa736",
-        "version" : "1.0.1"
+        "revision" : "f8e1ae4bd95760dd96e0b877d1672c98e9eb1486",
+        "version" : "1.0.2"
       }
     }
   ],
