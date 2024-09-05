@@ -8,10 +8,10 @@
   "indentConditionalCompilationBlocks": true,
   "indentSwitchCaseLabels": true,
   "lineBreakAroundMultilineExpressionChainComponents": false,
-  "lineBreakBeforeControlFlowKeywords": false,
-  "lineBreakBeforeEachArgument": false,
-  "lineBreakBeforeEachGenericRequirement": false,
-  "lineLength": 160,
+  "lineBreakBeforeControlFlowKeywords": true,
+  "lineBreakBeforeEachArgument": true,
+  "lineBreakBeforeEachGenericRequirement": true,
+  "lineLength": 80,
   "maximumBlankLines": 1,
   "multiElementCollectionTrailingCommas": true,
   "noAssignmentInExpressions": {
@@ -19,7 +19,7 @@
       "XCTAssertNoThrow"
     ]
   },
-  "prioritizeKeepingFunctionOutputTogether": false,
+  "prioritizeKeepingFunctionOutputTogether": true,
   "respectsExistingLineBreaks": false,
   "rules": {
     "AllPublicDeclarationsHaveDocumentation": false,

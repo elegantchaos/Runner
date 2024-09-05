@@ -1,9 +1,54 @@
 import Foundation
 
-actor DataBuffer {
+public actor DataBuffer {
   var data = Data()
-  func append(_ bytes: Data) { data.append(bytes) }
-  func finish() { print("done") }
+  var continuations: [AsyncStream<UInt8>.Continuation] = []
+  func append(_ bytes: Data) {
+    assert(!bytes.isEmpty)
+    data.append(bytes)
+    for continuation in continuations {
+      for byte in bytes { continuation.yield(byte) }
+    }
+  }
+
+  func finish() {
+    for continuation in continuations { continuation.finish() }
+    continuations.removeAll()
+  }
+
+  func registerContinuation(_ continuation: AsyncStream<UInt8>.Continuation) {
+    continuations.append(continuation)
+    if !data.isEmpty { for byte in data { continuation.yield(byte) } }
+  }
+  func removeContinuation(_ continuation: AsyncStream<UInt8>.Continuation) {
+
+  }
+
+  func makeBytes() -> AsyncBytes { AsyncBytes(buffer: self) }
+  var bytes: AsyncBytes { AsyncBytes(buffer: self) }
+
+  static var noBytes: AsyncBytes { AsyncBytes(buffer: nil) }
+
+  public struct AsyncBytes: AsyncSequence, Sendable {
+    public typealias Element = UInt8
+
+    let buffer: DataBuffer?
+
+    /// Make an iterator that reads data from the pipe's file handle
+    /// and outputs it as a byte sequence.
+    public func makeAsyncIterator() -> AsyncStream<Element>.Iterator {
+      return AsyncStream { continuation in
+        guard let buffer else {
+          continuation.finish()
+          return
+        }
+        Task { await buffer.registerContinuation(continuation) }
+        continuation.onTermination = { termination in
+          Task { await buffer.removeContinuation(continuation) }
+        }
+      }.makeAsyncIterator()
+    }
+  }
 }
 
 extension Runner {
@@ -29,12 +74,7 @@ extension Runner {
     /// The file to capture output, if we're not capturing.
     let handle: FileHandle
 
-    /// Byte stream of the captured output.
-    /// If we're not capturing, this will be a no-op stream that's empty
-    /// so that client code has a consistent interface to work with.
-    let bytes: ByteStream
-
-    let buffer = DataBuffer()
+    let buffer: DataBuffer?
 
     /// Return a byte stream for the given mode.
     /// If the mode is .forward, we use the standard handle for the process.
@@ -45,30 +85,52 @@ extension Runner {
       switch mode { case .forward:
         pipe = nil
         handle = standardHandle
-        bytes = Pipe.dispatchNoBytes
+        buffer = nil
 
         case .capture:
           pipe = Pipe()
           handle = pipe!.fileHandleForReading
-          bytes = pipe!.dispatchBytes
-          let buffer = self.buffer
+          let buffer = DataBuffer()
+          self.buffer = buffer
           handle.readabilityHandler = { handle in
             let data = handle.availableData
-            Task { if data.isEmpty { await buffer.finish() } else { await buffer.append(data) } }
+            Task {
+              if data.isEmpty {
+                await buffer.finish()
+              }
+              else {
+                await buffer.append(data)
+              }
+            }
           }
 
         case .both:
           pipe = Pipe()
           handle = pipe!.fileHandleForReading
-          bytes = pipe!.dispatchBytesForwardingTo(standardHandle)
+          let buffer = DataBuffer()
+          self.buffer = buffer
+          handle.readabilityHandler = { handle in
+            let data = handle.availableData
+            try? standardHandle.write(contentsOf: data)
+            Task {
+              if data.isEmpty {
+                await buffer.finish()
+              }
+              else {
+                await buffer.append(data)
+              }
+            }
+          }
 
         case .discard:
           pipe = nil
           handle = FileHandle.nullDevice
-          bytes = Pipe.dispatchNoBytes
+          buffer = nil
       }
     }
   }
 }
 
-extension Pipe { static var noBytes2: FileHandle.AsyncBytes { FileHandle.nullDevice.bytes } }
+extension Pipe {
+  static var noBytes2: FileHandle.AsyncBytes { FileHandle.nullDevice.bytes }
+}
