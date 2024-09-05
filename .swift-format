@@ -11,7 +11,7 @@
   "lineBreakBeforeControlFlowKeywords": false,
   "lineBreakBeforeEachArgument": false,
   "lineBreakBeforeEachGenericRequirement": false,
-  "lineLength": 100,
+  "lineLength": 160,
   "maximumBlankLines": 1,
   "multiElementCollectionTrailingCommas": true,
   "noAssignmentInExpressions": {
@@ -20,7 +20,7 @@
     ]
   },
   "prioritizeKeepingFunctionOutputTogether": false,
-  "respectsExistingLineBreaks": true,
+  "respectsExistingLineBreaks": false,
   "rules": {
     "AllPublicDeclarationsHaveDocumentation": false,
     "AlwaysUseLiteralForEmptyCollectionInit": false,

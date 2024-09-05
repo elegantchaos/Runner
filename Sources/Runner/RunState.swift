@@ -16,8 +16,6 @@ public enum RunState: Comparable, Sendable {
   public struct Sequence: AsyncSequence, Sendable {
     /// The runner we're reporting on.
     let process: Process
-    let outwriter: @Sendable (Data?) -> Void
-    let errwriter: @Sendable (Data?) -> Void
 
     public func makeAsyncIterator() -> AsyncStream<RunState>.Iterator {
       return makeStream().makeAsyncIterator()
@@ -34,9 +32,6 @@ public enum RunState: Comparable, Sendable {
           continuation.yield(process.finalState)
           continuation.finish()
         }
-
-        setupWriter(stream: process.standardOutput, writer: outwriter)
-        setupWriter(stream: process.standardError, writer: errwriter)
 
         do {
           try process.run()

@@ -1,5 +1,11 @@
 import Foundation
 
+actor DataBuffer {
+  var data = Data()
+  func append(_ bytes: Data) { data.append(bytes) }
+  func finish() { print("done") }
+}
+
 extension Runner {
   /// Helper for managing the output of a process.
   public struct ProcessStream: Sendable {
@@ -28,22 +34,28 @@ extension Runner {
     /// so that client code has a consistent interface to work with.
     let bytes: ByteStream
 
+    let buffer = DataBuffer()
+
     /// Return a byte stream for the given mode.
     /// If the mode is .forward, we use the standard handle for the process.
     /// If the mode is .capture, we make a new pipe and use that.
     /// If the mode is .both, we make a new pipe and set it up to forward to the standard handle.
     /// If the mode is .discard, we use /dev/null.
     init(mode: Mode, standardHandle: FileHandle) {
-      switch mode {
-        case .forward:
-          pipe = nil
-          handle = standardHandle
-          bytes = Pipe.dispatchNoBytes
+      switch mode { case .forward:
+        pipe = nil
+        handle = standardHandle
+        bytes = Pipe.dispatchNoBytes
 
         case .capture:
           pipe = Pipe()
           handle = pipe!.fileHandleForReading
           bytes = pipe!.dispatchBytes
+          let buffer = self.buffer
+          handle.readabilityHandler = { handle in
+            let data = handle.availableData
+            Task { if data.isEmpty { await buffer.finish() } else { await buffer.append(data) } }
+          }
 
         case .both:
           pipe = Pipe()
@@ -59,8 +71,4 @@ extension Runner {
   }
 }
 
-extension Pipe {
-  static var noBytes2: FileHandle.AsyncBytes {
-    FileHandle.nullDevice.bytes
-  }
-}
+extension Pipe { static var noBytes2: FileHandle.AsyncBytes { FileHandle.nullDevice.bytes } }
