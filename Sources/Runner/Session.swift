@@ -10,10 +10,10 @@ extension Runner {
 
   public struct Session: Sendable {
     /// Captured output stream from the process.
-    internal let stdout: Output
+    public let stdout: Output
 
     /// Capture error stream from the process.
-    internal let stderr: Output
+    public let stderr: Output
 
     /// One-shot stream of the state of the process.
     /// This will only ever yield one value, and then complete.
