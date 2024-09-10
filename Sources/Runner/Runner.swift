@@ -64,8 +64,8 @@ open class Runner {
   /// The third stream is the state of the process.
   public func run(
     _ arguments: [String] = [],
-    stdoutMode: ProcessStream.Mode = .capture,
-    stderrMode: ProcessStream.Mode = .capture
+    stdoutMode: Output.Mode = .capture,
+    stderrMode: Output.Mode = .capture
   ) -> Session {
 
     let process = Process()
@@ -74,13 +74,13 @@ open class Runner {
     process.arguments = arguments
     process.environment = environment
 
-    let stdout = ProcessStream(
+    let stdout = Output(
       mode: stdoutMode,
       standardHandle: FileHandle.standardOutput,
       name: "stdout"
     )
     process.standardOutput = stdout.pipe ?? stdout.handle
-    let stderr = ProcessStream(
+    let stderr = Output(
       mode: stderrMode,
       standardHandle: FileHandle.standardError,
       name: "stderr"

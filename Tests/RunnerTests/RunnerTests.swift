@@ -108,7 +108,7 @@ import Testing
 /// Regression test for xcodebuild which triggered a deadlock in an earlier implementation.
 @Test func testXcodeBuild() async throws {
 
-  enum ArchiveError: RunnerError {
+  enum ArchiveError: Runner.Error {
     case archiveFailed
 
     func description(for session: Runner.Session) async -> String {
@@ -125,7 +125,7 @@ import Testing
   do {
     try await session.throwIfFailed(ArchiveError.archiveFailed)
   }
-  catch let e as WrappedRunnerError {
+  catch let e as Runner.WrappedError {
     #expect((e.error as? ArchiveError) == .archiveFailed)
     #expect(e.description.contains("Runner does not contain an Xcode project."))
     #expect(await session.stderr.string.contains("Runner does not contain an Xcode project."))

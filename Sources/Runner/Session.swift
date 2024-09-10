@@ -10,10 +10,10 @@ extension Runner {
 
   public struct Session: Sendable {
     /// Captured output stream from the process.
-    internal let stdout: ProcessStream
+    internal let stdout: Output
 
     /// Capture error stream from the process.
-    internal let stderr: ProcessStream
+    internal let stderr: Output
 
     /// One-shot stream of the state of the process.
     /// This will only ever yield one value, and then complete.
@@ -47,15 +47,15 @@ extension Runner {
     /// The error is allowed to be nil, in which case no error is thrown.
     /// This is useful if you want to throw an error only in certain circumstances.
     public func throwIfFailed(
-      _ e: @autoclosure @Sendable @escaping () async -> Error?
+      _ e: @autoclosure @Sendable @escaping () async -> Swift.Error?
     ) async throws {
       let s = await waitUntilExit()
       if s != .succeeded {
         debug("failed")
         var error = await e()
-        if let e = error as? RunnerError {
+        if let e = error as? Runner.Error {
           let d = await e.description(for: self)
-          error = WrappedRunnerError(error: e, description: d)
+          error = Runner.WrappedError(error: e, description: d)
         }
 
         if let error {

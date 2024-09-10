@@ -3,7 +3,7 @@ import Foundation
 
 extension Runner {
   /// Helper for managing the output of a process.
-  public struct ProcessStream: Sendable {
+  public struct Output: Sendable {
 
     /// The mode for handling the stream.
     public enum Mode {
