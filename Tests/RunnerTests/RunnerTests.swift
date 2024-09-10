@@ -120,23 +120,23 @@ import Testing
   #expect(output.contains("Command line invocation:"))
 }
 
-// @Test func testRegression() async throws {
-//   let xcode = Runner(command: "xcodebuild")
-//   xcode.cwd = URL(fileURLWithPath: "/Users/sam/Developer/Projects/Stack")
-//   let args = [
-//     "-workspace", "Stack.xcworkspace", "-scheme", "Stack", "archive",
-//     "-archivePath",
-//     "/Users/sam/Developer/Projects/Stack/.build/macOS/archive.xcarchive",
-//     "-allowProvisioningUpdates",
-//     "INFOPLIST_PREFIX_HEADER=/Users/sam/Developer/Projects/Stack/.build/macOS/VersionInfo.h",
-//     "INFOPLIST_PREPROCESS=YES", "CURRENT_PROJECT_VERSION=25",
-//   ]
+@Test func testRegression() async throws {
+  let xcode = Runner(command: "xcodebuild")
+  xcode.cwd = URL(fileURLWithPath: "/Users/sam/Developer/Projects/Stack")
+  let args = [
+    "-workspace", "Stack.xcworkspace", "-scheme", "Stack", "archive",
+    "-archivePath",
+    "/Users/sam/Developer/Projects/Stack/.build/macOS/archive.xcarchive",
+    "-allowProvisioningUpdates",
+    "INFOPLIST_PREFIX_HEADER=/Users/sam/Developer/Projects/Stack/.build/macOS/VersionInfo.h",
+    "INFOPLIST_PREPROCESS=YES", "CURRENT_PROJECT_VERSION=25",
+  ]
 
-//   let result = xcode.run(args, stdoutMode: .both, stderrMode: .both)
-//   // print(await String(result.stdout))
-//   // print(await String(result.stderr))
-//   try await result.throwIfFailed(ArchiveError.archiveFailed)
-// }
+  let result = xcode.run(args, stdoutMode: .both, stderrMode: .both)
+  // print(await String(result.stdout))
+  // print(await String(result.stderr))
+  try await result.throwIfFailed(ArchiveError.archiveFailed)
+}
 
 enum ArchiveError: RunnerError {
   case archiveFailed
