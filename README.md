@@ -28,7 +28,11 @@ for await l in result.stdout.lines {
 // run in a different working directory
 runner.cwd = /* url to the directory */
 let _ = runner.run(["blah"])
+```
 
+### Transfer Execution
+
+```swift
 // transfer execution to the subprocess
 runner.exec(url)
 ```
