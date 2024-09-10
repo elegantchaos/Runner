@@ -37,18 +37,20 @@ extension Runner {
     /// You can await this value if you want to wait for the process to finish.
     public let state: AsyncStream<RunState>
 
+    /// Wait for the process to finish and return the final state.
+    public func waitUntilExit() async -> RunState {
+      for await state in self.state {
+        debug("termination state was \(state)")
+        return state
+      }
+      fatalError("somehow process didn't yield a state")
+    }
+
     /// Check the state of the process and perform an action if it failed.
     nonisolated public func ifFailed(
       _ e: @Sendable @escaping () async -> Void
     ) async throws {
-      debug("checking state")
-      var s: RunState?
-      for await state in self.state {
-        s = state
-        break
-      }
-
-      debug("got state")
+      let s = await waitUntilExit()
       if s != .succeeded {
         debug("failed")
         Task.detached { await e() }
@@ -64,14 +66,7 @@ extension Runner {
     public func throwIfFailed(
       _ e: @autoclosure @Sendable @escaping () async -> Error?
     ) async throws {
-      debug("checking state")
-      var s: RunState?
-      for await state in self.state {
-        s = state
-        break
-      }
-      debug("state is \(String(describing: s))")
-
+      let s = await waitUntilExit()
       if s != .succeeded {
         debug("failed")
         var error = await e()

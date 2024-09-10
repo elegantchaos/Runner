@@ -3,6 +3,17 @@ import Testing
 
 @testable import Runner
 
+/// Test wait for termination.
+@Test func testWait() async throws {
+  let runner = Runner(
+    for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!
+  )
+  let session = runner.run()
+
+  let state = await session.waitUntilExit()
+  #expect(state == .succeeded)
+}
+
 /// Test with a task that has a zero status.
 @Test func testZeroStatus() async throws {
   let runner = Runner(
@@ -15,7 +26,6 @@ import Testing
   for try await l in await session.stderr.lines { #expect(l == "stderr") }
 
   for await state: RunState in session.state { #expect(state == .succeeded) }
-
 }
 
 /// Test with a task that has a non-zero status.

@@ -60,3 +60,11 @@ for await state: RunState in result.state { #expect(state == .succeeded) }
 }
 ```
 
+### Run Passing Stdout/Stderr Through
+
+```swift
+let url = /* url to the executable */
+let runner = Runner(for: url)
+let session = runner.run(stdoutMode: .forward, stderrMode: .forward)
+let _ = session.waitUntilExit()
+```
