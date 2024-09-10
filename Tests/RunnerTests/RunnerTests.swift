@@ -82,11 +82,11 @@ import Testing
   )
   let session = runner.run(stdoutMode: .forward, stderrMode: .forward)
 
-  for try await _ in await session.stdout {
+  for try await _ in await session.stdout.bytes {
     #expect(Bool(false), "shouldn't be any content")
   }
 
-  for try await _ in await session.stderr {
+  for try await _ in await session.stderr.bytes {
     #expect(Bool(false), "shouldn't be any content")
   }
 
@@ -112,7 +112,7 @@ import Testing
     case archiveFailed
 
     func description(for session: Runner.Session) async -> String {
-      async let stderr = String(session.stderr)
+      async let stderr = session.stderr.string
       switch self { case .archiveFailed:
         return "Archiving failed.\n\n\(await stderr)"
       }
@@ -128,15 +128,14 @@ import Testing
   catch let e as WrappedRunnerError {
     #expect((e.error as? ArchiveError) == .archiveFailed)
     #expect(e.description.contains("Runner does not contain an Xcode project."))
-    let errorOutput = await session.errInfo.buffer?.string
-    #expect(errorOutput?.contains("Runner does not contain an Xcode project.") == true)
+    #expect(await session.stderr.string.contains("Runner does not contain an Xcode project."))
   }
   catch {
     throw error
   }
 
-  let output = await String(session.stdout)
-  #expect(output.contains("Command line invocation:"))
+  #expect(
+    await session.stdout.string.contains("Command line invocation:"))
 }
 
 #if TEST_REGRESSION

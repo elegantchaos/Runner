@@ -87,7 +87,7 @@ open class Runner {
     )
     process.standardError = stderr.pipe ?? stderr.handle
     let state = RunState.Sequence(process: process).makeStream()
-    let session = Session(outInfo: stdout, errInfo: stderr, state: state)
+    let session = Session(stdout: stdout, stderr: stderr, state: state)
 
     return session
   }

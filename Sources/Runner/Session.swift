@@ -9,29 +9,12 @@ import Foundation
 extension Runner {
 
   public struct Session: Sendable {
-    /// Internal info about the output from the process.
-    internal let outInfo: ProcessStream
+    /// Captured output stream from the process.
+    internal let stdout: ProcessStream
 
-    /// Internal info about the error output from the process.
-    internal let errInfo: ProcessStream
+    /// Capture error stream from the process.
+    internal let stderr: ProcessStream
 
-    /// Byte stream of the captured output.
-    public var stdout: DataBuffer.AsyncBytes {
-      get async {
-        guard let buffer = outInfo.buffer else {
-          debug("no buffer")
-          return DataBuffer.noBytes
-        }
-
-        debug("made bytes")
-        return await buffer.bytes
-      }
-    }
-
-    /// Byte stream of the captured error output.
-    public var stderr: DataBuffer.AsyncBytes {
-      get async { await errInfo.buffer?.bytes ?? DataBuffer.noBytes }
-    }
     /// One-shot stream of the state of the process.
     /// This will only ever yield one value, and then complete.
     /// You can await this value if you want to wait for the process to finish.

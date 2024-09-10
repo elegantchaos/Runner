@@ -85,7 +85,24 @@ extension Runner {
       return (buffer, pipe, handle)
     }
 
-  }
+    /// A sequence of bytes from the stream.
+    public var bytes: DataBuffer.AsyncBytes {
+      get async { await buffer?.bytes ?? DataBuffer.noBytes }
+    }
 
+    /// A sequence of lines from the stream.
+    public var lines: AsyncLineSequence<DataBuffer.AsyncBytes> {
+      get async {
+        await buffer?.lines ?? DataBuffer.noBytes.lines
+      }
+    }
+
+    /// The whole stream as a string.
+    public var string: String {
+      get async {
+        await buffer?.string ?? ""
+      }
+    }
+  }
 
 }
