@@ -18,17 +18,18 @@ public enum RunState: Comparable, Sendable {
     let process: Process
 
     public func makeAsyncIterator() -> AsyncStream<RunState>.Iterator {
+      Runner.debug("makeIterator")
       return makeStream().makeAsyncIterator()
     }
 
     public func makeStream() -> AsyncStream<RunState> {
-      Runner.debug("makeIterator")
+      Runner.debug("makeStream")
       return AsyncStream { continuation in
         Runner.debug("registering callback")
         process.terminationHandler = { _ in
           Runner.debug("terminated")
-          cleanup(stream: process.standardOutput, name: "stdout")
-          cleanup(stream: process.standardError, name: "stderr")
+          // cleanup(stream: process.standardOutput, name: "stdout")
+          // cleanup(stream: process.standardError, name: "stderr")
           continuation.yield(process.finalState)
           continuation.finish()
         }
@@ -40,7 +41,7 @@ public enum RunState: Comparable, Sendable {
         }
 
         continuation.onTermination = { termination in
-          Runner.debug("continuation terminated \(termination)")
+          Runner.debug("state continuation \(termination)")
         }
 
       }

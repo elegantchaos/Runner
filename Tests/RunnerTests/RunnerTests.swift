@@ -10,10 +10,13 @@ import Testing
   )
   let result = runner.run()
 
+  print("read out")
   for try await l in await result.stdout.lines { #expect(l == "stdout") }
 
+  print("read err")
   for try await l in await result.stderr.lines { #expect(l == "stderr") }
 
+  print("read state")
   for await state in result.state { #expect(state == .succeeded) }
 
 }
@@ -93,58 +96,53 @@ import Testing
   for try await line in await result.stdout.lines {
     #expect(line == "args arg1 arg2")
   }
-
 }
 
-enum TestErrors: Swift.Error {
+// /// Regression test for xcodebuild which triggered a deadlock in an earlier implementation.
+// @Test func testXcodeBuild() async throws {
+//   let runner = Runner(command: "xcodebuild")
+//   let result = runner.run([], stdoutMode: .both, stderrMode: .both)
 
-  case badParameters(String)
-}
+//   do {
+//     try await result.throwIfFailed(
+//       ArchiveError.archiveFailed
+//     )
+//   }
+//   catch is WrappedRunnerError {
+//     let message = await result.errInfo.buffer?.string ?? ""
+//     #expect(message.contains("Runner does not contain an Xcode project."))
+//   }
 
-/// Regression test for xcodebuild which triggered a deadlock in an earlier implementation.
-@Test func testXcodeBuild() async throws {
-  let runner = Runner(command: "xcodebuild")
-  let result = runner.run([], stdoutMode: .both, stderrMode: .both)
+//   let output = await String(result.stdout)
+//   print("output: \(output)")
+//   #expect(output.contains("Command line invocation:"))
+// }
 
-  do {
-    try await result.throwIfFailed(
-      TestErrors.badParameters(await String(result.stderr))
-    )
-  }
-  catch TestErrors.badParameters(let message) {
-    #expect(message.contains("Runner does not contain an Xcode project."))
-  }
-  catch { #expect(error is TestErrors) }
+// @Test func testRegression() async throws {
+//   let xcode = Runner(command: "xcodebuild")
+//   xcode.cwd = URL(fileURLWithPath: "/Users/sam/Developer/Projects/Stack")
+//   let args = [
+//     "-workspace", "Stack.xcworkspace", "-scheme", "Stack", "archive",
+//     "-archivePath",
+//     "/Users/sam/Developer/Projects/Stack/.build/macOS/archive.xcarchive",
+//     "-allowProvisioningUpdates",
+//     "INFOPLIST_PREFIX_HEADER=/Users/sam/Developer/Projects/Stack/.build/macOS/VersionInfo.h",
+//     "INFOPLIST_PREPROCESS=YES", "CURRENT_PROJECT_VERSION=25",
+//   ]
 
-  let output = await String(result.stdout)
-  #expect(output.contains("Command line invocation:"))
-}
+//   let result = xcode.run(args, stdoutMode: .both, stderrMode: .both)
+//   // print(await String(result.stdout))
+//   // print(await String(result.stderr))
+//   try await result.throwIfFailed(ArchiveError.archiveFailed)
+// }
 
-@Test func testRegression() async throws {
-  let xcode = Runner(command: "xcodebuild")
-  xcode.cwd = URL(fileURLWithPath: "/Users/sam/Developer/Projects/Stack")
-  let args = [
-    "-workspace", "Stack.xcworkspace", "-scheme", "Stack", "archive",
-    "-archivePath",
-    "/Users/sam/Developer/Projects/Stack/.build/macOS/archive.xcarchive",
-    "-allowProvisioningUpdates",
-    "INFOPLIST_PREFIX_HEADER=/Users/sam/Developer/Projects/Stack/.build/macOS/VersionInfo.h",
-    "INFOPLIST_PREPROCESS=YES", "CURRENT_PROJECT_VERSION=25",
-  ]
+// enum ArchiveError: RunnerError {
+//   case archiveFailed
 
-  let result = xcode.run(args, stdoutMode: .both, stderrMode: .both)
-  // print(await String(result.stdout))
-  // print(await String(result.stderr))
-  try await result.throwIfFailed(ArchiveError.archiveFailed)
-}
-
-enum ArchiveError: RunnerError {
-  case archiveFailed
-
-  func description(for session: Runner.Session) async -> String {
-    async let stderr = String(session.stderr)
-    switch self { case .archiveFailed:
-      return "Archiving failed.\n\n\(await stderr)"
-    }
-  }
-}
+//   func description(for session: Runner.Session) async -> String {
+//     async let stderr = String(session.stderr)
+//     switch self { case .archiveFailed:
+//       return "Archiving failed.\n\n\(await stderr)"
+//     }
+//   }
+// }

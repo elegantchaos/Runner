@@ -12,7 +12,7 @@ let package = Package(
   dependencies: [
     .package(
       url: "https://github.com/elegantchaos/ChaosByteStreams",
-      from: "1.0.4"
+      from: "1.0.6"
     )
   ],
 

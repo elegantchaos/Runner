@@ -9,10 +9,10 @@
   "indentSwitchCaseLabels": true,
   "lineBreakAroundMultilineExpressionChainComponents": false,
   "lineBreakBeforeControlFlowKeywords": true,
-  "lineBreakBeforeEachArgument": true,
-  "lineBreakBeforeEachGenericRequirement": true,
-  "lineLength": 80,
-  "maximumBlankLines": 1,
+  "lineBreakBeforeEachArgument": false,
+  "lineBreakBeforeEachGenericRequirement": false,
+  "lineLength": 160,
+  "maximumBlankLines": 2,
   "multiElementCollectionTrailingCommas": true,
   "noAssignmentInExpressions": {
     "allowedFunctions": [
@@ -20,7 +20,7 @@
     ]
   },
   "prioritizeKeepingFunctionOutputTogether": true,
-  "respectsExistingLineBreaks": false,
+  "respectsExistingLineBreaks": true,
   "rules": {
     "AllPublicDeclarationsHaveDocumentation": false,
     "AlwaysUseLiteralForEmptyCollectionInit": false,

@@ -41,6 +41,6 @@
 			"problemMatcher": [],
 			"label": "swift: Test All",
 			"detail": "swift test --parallel --enable-test-discovery -Xswiftc -diagnostic-style=llvm"
-		}
+		},
 	]
 }

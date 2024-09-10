@@ -17,12 +17,20 @@ extension Runner {
 
     /// Byte stream of the captured output.
     public var stdout: DataBuffer.AsyncBytes {
-      get async { await outInfo.buffer?.makeBytes() ?? DataBuffer.noBytes }
+      get async {
+        guard let buffer = outInfo.buffer else {
+          debug("no buffer")
+          return DataBuffer.noBytes
+        }
+
+        debug("made bytes")
+        return await buffer.bytes
+      }
     }
 
     /// Byte stream of the captured error output.
     public var stderr: DataBuffer.AsyncBytes {
-      get async { await errInfo.buffer?.makeBytes() ?? DataBuffer.noBytes }
+      get async { await errInfo.buffer?.bytes ?? DataBuffer.noBytes }
     }
     /// One-shot stream of the state of the process.
     /// This will only ever yield one value, and then complete.

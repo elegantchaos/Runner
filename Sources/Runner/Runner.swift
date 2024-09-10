@@ -19,9 +19,9 @@ open class Runner {
 
   /// Log a message if internal logging is enabled.
   static internal func debug(_ message: String) {
-    #if DEBUG_RUNNER
-      print(message)
-    #endif
+    // #if DEBUG_RUNNER
+    print(message)
+    // #endif
   }
 
   /// Initialise with an explicit URL to the executable.
@@ -69,12 +69,14 @@ open class Runner {
 
     let stdout = ProcessStream(
       mode: stdoutMode,
-      standardHandle: FileHandle.standardOutput
+      standardHandle: FileHandle.standardOutput,
+      name: "stdout"
     )
     process.standardOutput = stdout.pipe ?? stdout.handle
     let stderr = ProcessStream(
       mode: stderrMode,
-      standardHandle: FileHandle.standardError
+      standardHandle: FileHandle.standardError,
+      name: "stderr"
     )
     process.standardError = stderr.pipe ?? stderr.handle
     let state = RunState.Sequence(process: process).makeStream()
