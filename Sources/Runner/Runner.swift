@@ -19,9 +19,9 @@ open class Runner {
 
   /// Log a message if internal logging is enabled.
   static internal func debug(_ message: String) {
-    // #if DEBUG_RUNNER
-    print(message)
-    // #endif
+    #if DEBUG_RUNNER
+      print(message)
+    #endif
   }
 
   /// Initialise with an explicit URL to the executable.

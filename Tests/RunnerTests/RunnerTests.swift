@@ -98,25 +98,27 @@ import Testing
   }
 }
 
-// /// Regression test for xcodebuild which triggered a deadlock in an earlier implementation.
-// @Test func testXcodeBuild() async throws {
-//   let runner = Runner(command: "xcodebuild")
-//   let result = runner.run([], stdoutMode: .both, stderrMode: .both)
+/// Regression test for xcodebuild which triggered a deadlock in an earlier implementation.
+@Test func testXcodeBuild() async throws {
+  let runner = Runner(command: "xcodebuild")
+  let result = runner.run([], stdoutMode: .capture, stderrMode: .capture)
 
-//   do {
-//     try await result.throwIfFailed(
-//       ArchiveError.archiveFailed
-//     )
-//   }
-//   catch is WrappedRunnerError {
-//     let message = await result.errInfo.buffer?.string ?? ""
-//     #expect(message.contains("Runner does not contain an Xcode project."))
-//   }
+  do {
+    try await result.throwIfFailed(ArchiveError.archiveFailed)
+  }
+  catch let e as WrappedRunnerError {
+    #expect((e.error as? ArchiveError) == .archiveFailed)
+    #expect(e.description.contains("Runner does not contain an Xcode project."))
+    let errorOutput = await result.errInfo.buffer?.string
+    #expect(errorOutput?.contains("Runner does not contain an Xcode project.") == true)
+  }
+  catch {
+    throw error
+  }
 
-//   let output = await String(result.stdout)
-//   print("output: \(output)")
-//   #expect(output.contains("Command line invocation:"))
-// }
+  let output = await String(result.stdout)
+  #expect(output.contains("Command line invocation:"))
+}
 
 // @Test func testRegression() async throws {
 //   let xcode = Runner(command: "xcodebuild")
@@ -136,13 +138,13 @@ import Testing
 //   try await result.throwIfFailed(ArchiveError.archiveFailed)
 // }
 
-// enum ArchiveError: RunnerError {
-//   case archiveFailed
+enum ArchiveError: RunnerError {
+  case archiveFailed
 
-//   func description(for session: Runner.Session) async -> String {
-//     async let stderr = String(session.stderr)
-//     switch self { case .archiveFailed:
-//       return "Archiving failed.\n\n\(await stderr)"
-//     }
-//   }
-// }
+  func description(for session: Runner.Session) async -> String {
+    async let stderr = String(session.stderr)
+    switch self { case .archiveFailed:
+      return "Archiving failed.\n\n\(await stderr)"
+    }
+  }
+}
