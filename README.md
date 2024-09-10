@@ -19,7 +19,7 @@ let runner = Runner(for: url)
 let session = runner.run(["some", "arguments"])
 
 // process the output asynchronously
-for await l in result.stdout.lines {
+for await l in session.stdout.lines {
   print(l)
 }
 ```
