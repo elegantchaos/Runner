@@ -4,6 +4,8 @@
 Support for executing subprocesses, using Foundation.Process, and capturing their
 output asynchronously. Swift 6 ready.
 
+Currently doesn't support a STDIN stream -- only STDOUT and STDERR -- but it should be easy enough to add when I (or someone else?) hit a use case.
+
 Usage examples:
 
 ### Run And Capture Stdout
