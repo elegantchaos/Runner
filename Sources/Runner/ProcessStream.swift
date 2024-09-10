@@ -70,7 +70,7 @@ extension Runner {
           handle.readabilityHandler = nil
           Task.detached {
             await buffer.close()
-            debug("\(name) closed - '\(String(data: await buffer.buffer, encoding: .utf8)!)'")
+            await debugAsync("\(name) closed - '\(String(data: await buffer.buffer, encoding: .utf8)!)'")
           }
 
         }

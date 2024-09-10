@@ -18,9 +18,16 @@ open class Runner {
   public var cwd: URL?
 
   /// Log a message if internal logging is enabled.
-  static internal func debug(_ message: String) {
+  static internal func debug(_ message: @autoclosure () -> String) {
     #if DEBUG_RUNNER
       print(message)
+    #endif
+  }
+
+  /// Log a message if internal logging is enabled.
+  static internal func debugAsync(_ message: @autoclosure () async -> String) async {
+    #if DEBUG_RUNNER
+      print(await message())
     #endif
   }
 
