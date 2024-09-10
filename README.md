@@ -16,7 +16,7 @@ let runner = Runner(for: url)
 // execute with some arguments
 let session = runner.run(["some", "arguments"])
 
-// process the output
+// process the output asynchronously
 for await l in result.stdout.lines {
   print(l)
 }
@@ -39,7 +39,7 @@ runner.exec(url)
 
 let runner = Runner(command: "git") /// we'll find git in $PATH if it's there
 let session = runner.run("status")
-print(await String(session.stdout.bytes))
+print(await session.stdout.string)
 ```
 
 
@@ -53,10 +53,8 @@ let runner = Runner(for: url)
 let session = runner.run(["some", "arguments"])
 
 // wait for termination and read state
-for await state: RunState in result.state { #expect(state == .succeeded) }
-  if state == .succeeded {
-    print("all good")
-  }
+if await session.waitUntilExit() == .succeeded {
+  print("all good")
 }
 ```
 
