@@ -8,13 +8,13 @@ import Testing
   let runner = Runner(
     for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!
   )
-  let result = runner.run()
+  let session = runner.run()
 
-  for try await l in await result.stdout.lines { #expect(l == "stdout") }
+  for try await l in await session.stdout.lines { #expect(l == "stdout") }
 
-  for try await l in await result.stderr.lines { #expect(l == "stderr") }
+  for try await l in await session.stderr.lines { #expect(l == "stderr") }
 
-  for await state in result.state { #expect(state == .succeeded) }
+  for await state: RunState in session.state { #expect(state == .succeeded) }
 
 }
 
@@ -23,13 +23,13 @@ import Testing
   let runner = Runner(
     for: Bundle.module.url(forResource: "non-zero-status", withExtension: "sh")!
   )
-  let result = runner.run()
+  let session = runner.run()
 
-  for try await l in await result.stdout.lines { #expect(l == "stdout") }
+  for try await l in await session.stdout.lines { #expect(l == "stdout") }
 
-  for try await l in await result.stderr.lines { #expect(l == "stderr") }
+  for try await l in await session.stderr.lines { #expect(l == "stderr") }
 
-  for await state in result.state { #expect(state == .failed(123)) }
+  for await state in session.state { #expect(state == .failed(123)) }
 }
 
 /// Test with a task that outputs more than one line
@@ -38,15 +38,15 @@ import Testing
   let runner = Runner(
     for: Bundle.module.url(forResource: "long-running", withExtension: "sh")!
   )
-  let result = runner.run()
+  let session = runner.run()
 
   var expected = ["hello", "goodbye"]
-  for try await l in await result.stdout.lines {
+  for try await l in await session.stdout.lines {
     #expect(l == expected.removeFirst())
   }
   #expect(expected.isEmpty)
 
-  for await state in result.state { #expect(state == .succeeded) }
+  for await state in session.state { #expect(state == .succeeded) }
 }
 
 /// Test tee mode where we both capture
@@ -55,13 +55,13 @@ import Testing
   let runner = Runner(
     for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!
   )
-  let result = runner.run(stdoutMode: .both, stderrMode: .both)
+  let session = runner.run(stdoutMode: .both, stderrMode: .both)
 
-  for try await l in await result.stdout.lines { #expect(l == "stdout") }
+  for try await l in await session.stdout.lines { #expect(l == "stdout") }
 
-  for try await l in await result.stderr.lines { #expect(l == "stderr") }
+  for try await l in await session.stderr.lines { #expect(l == "stderr") }
 
-  for await state in result.state { #expect(state == .succeeded) }
+  for await state in session.state { #expect(state == .succeeded) }
 }
 
 /// Test pass-through mode where we don't capture
@@ -70,17 +70,17 @@ import Testing
   let runner = Runner(
     for: Bundle.module.url(forResource: "zero-status", withExtension: "sh")!
   )
-  let result = runner.run(stdoutMode: .forward, stderrMode: .forward)
+  let session = runner.run(stdoutMode: .forward, stderrMode: .forward)
 
-  for try await _ in await result.stdout {
+  for try await _ in await session.stdout {
     #expect(Bool(false), "shouldn't be any content")
   }
 
-  for try await _ in await result.stderr {
+  for try await _ in await session.stderr {
     #expect(Bool(false), "shouldn't be any content")
   }
 
-  for try await state in result.state { #expect(state == .succeeded) }
+  for try await state in session.state { #expect(state == .succeeded) }
 }
 
 /// Test passing arguments.
@@ -88,58 +88,61 @@ import Testing
   let runner = Runner(
     for: Bundle.module.url(forResource: "args", withExtension: "sh")!
   )
-  let result = runner.run(["arg1", "arg2"])
+  let session = runner.run(["arg1", "arg2"])
 
-  for try await line in await result.stdout.lines {
+  for try await line in await session.stdout.lines {
     #expect(line == "args arg1 arg2")
   }
 }
 
 /// Regression test for xcodebuild which triggered a deadlock in an earlier implementation.
 @Test func testXcodeBuild() async throws {
+
+  enum ArchiveError: RunnerError {
+    case archiveFailed
+
+    func description(for session: Runner.Session) async -> String {
+      async let stderr = String(session.stderr)
+      switch self { case .archiveFailed:
+        return "Archiving failed.\n\n\(await stderr)"
+      }
+    }
+  }
+
   let runner = Runner(command: "xcodebuild")
-  let result = runner.run([], stdoutMode: .capture, stderrMode: .capture)
+  let session = runner.run([], stdoutMode: .capture, stderrMode: .capture)
 
   do {
-    try await result.throwIfFailed(ArchiveError.archiveFailed)
+    try await session.throwIfFailed(ArchiveError.archiveFailed)
   }
   catch let e as WrappedRunnerError {
     #expect((e.error as? ArchiveError) == .archiveFailed)
     #expect(e.description.contains("Runner does not contain an Xcode project."))
-    let errorOutput = await result.errInfo.buffer?.string
+    let errorOutput = await session.errInfo.buffer?.string
     #expect(errorOutput?.contains("Runner does not contain an Xcode project.") == true)
   }
   catch {
     throw error
   }
 
-  let output = await String(result.stdout)
+  let output = await String(session.stdout)
   #expect(output.contains("Command line invocation:"))
 }
 
-@Test func testRegression() async throws {
-  let xcode = Runner(command: "xcodebuild")
-  xcode.cwd = URL(fileURLWithPath: "/Users/sam/Developer/Projects/Stack")
-  let args = [
-    "-workspace", "Stack.xcworkspace", "-scheme", "Stack", "archive",
-    "-archivePath",
-    "/Users/sam/Developer/Projects/Stack/.build/macOS/archive.xcarchive",
-    "-allowProvisioningUpdates",
-    "INFOPLIST_PREFIX_HEADER=/Users/sam/Developer/Projects/Stack/.build/macOS/VersionInfo.h",
-    "INFOPLIST_PREPROCESS=YES", "CURRENT_PROJECT_VERSION=25",
-  ]
+#if TEST_REGRESSION
+  @Test func testRegression() async throws {
+    let xcode = Runner(command: "xcodebuild")
+    xcode.cwd = URL(fileURLWithPath: "/Users/sam/Developer/Projects/Stack")
+    let args = [
+      "-workspace", "Stack.xcworkspace", "-scheme", "Stack", "archive",
+      "-archivePath",
+      "/Users/sam/Developer/Projects/Stack/.build/macOS/archive.xcarchive",
+      "-allowProvisioningUpdates",
+      "INFOPLIST_PREFIX_HEADER=/Users/sam/Developer/Projects/Stack/.build/macOS/VersionInfo.h",
+      "INFOPLIST_PREPROCESS=YES", "CURRENT_PROJECT_VERSION=25",
+    ]
 
-  let result = xcode.run(args, stdoutMode: .both, stderrMode: .both)
-  try await result.throwIfFailed(ArchiveError.archiveFailed)
-}
-
-enum ArchiveError: RunnerError {
-  case archiveFailed
-
-  func description(for session: Runner.Session) async -> String {
-    async let stderr = String(session.stderr)
-    switch self { case .archiveFailed:
-      return "Archiving failed.\n\n\(await stderr)"
-    }
+    let session = xcode.run(args, stdoutMode: .both, stderrMode: .both)
+    try await session.throwIfFailed(ArchiveError.archiveFailed)
   }
-}
+#endif

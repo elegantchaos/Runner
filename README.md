@@ -4,7 +4,9 @@
 Support for executing subprocesses, using Foundation.Process, and capturing their
 output asynchronously. Swift 6 ready.
 
-Usage:
+Usage examples:
+
+### Run And Capture Stdout
 
 ```swift
 
@@ -18,8 +20,11 @@ let session = runner.run(["some", "arguments"])
 for await l in result.stdout.lines {
   print(l)
 }
+```
 
+### Run In A Different Working Directory
 
+```swift
 // run in a different working directory
 runner.cwd = /* url to the directory */
 let _ = runner.run(["blah"])
@@ -28,18 +33,30 @@ let _ = runner.run(["blah"])
 runner.exec(url)
 ```
 
-## Path Lookup
-
-Rather than supplying the path to the executable explicitly,
-you can instead supply just a name, and have it looked up using
-the $PATH environment variable.
+## Lookup Executable In Path
 
 ```swift
 
-let runner = Runner(command: "name")
+let runner = Runner(command: "git") /// we'll find git in $PATH if it's there
+let session = runner.run("status")
+print(await String(session.stdout.bytes))
 ```
 
 
-## Useful References
+### Run And Wait For Termination
 
-- https://developer.apple.com/forums/thread/690310
+```swift
+let url = /* url to the executable */
+let runner = Runner(for: url)
+
+// execute with some arguments
+let session = runner.run(["some", "arguments"])
+
+// wait for termination and read state
+for await state: RunState in result.state { #expect(state == .succeeded) }
+  if state == .succeeded {
+    print("all good")
+  }
+}
+```
+
