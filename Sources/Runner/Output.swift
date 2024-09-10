@@ -97,12 +97,18 @@ extension Runner {
       }
     }
 
-    /// The whole stream as a string.
+    /// The whole stream as a `String`.
     public var string: String {
       get async {
         await buffer?.string ?? ""
       }
     }
-  }
 
+    /// The whole stream as a `Data` object.
+    public var data: Data {
+      get async {
+        await buffer?.data ?? Data()
+      }
+    }
+  }
 }
