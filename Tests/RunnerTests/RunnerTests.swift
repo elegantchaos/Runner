@@ -10,13 +10,10 @@ import Testing
   )
   let result = runner.run()
 
-  print("read out")
   for try await l in await result.stdout.lines { #expect(l == "stdout") }
 
-  print("read err")
   for try await l in await result.stderr.lines { #expect(l == "stderr") }
 
-  print("read state")
   for await state in result.state { #expect(state == .succeeded) }
 
 }
@@ -133,8 +130,6 @@ import Testing
   ]
 
   let result = xcode.run(args, stdoutMode: .both, stderrMode: .both)
-  // print(await String(result.stdout))
-  // print(await String(result.stderr))
   try await result.throwIfFailed(ArchiveError.archiveFailed)
 }
 
