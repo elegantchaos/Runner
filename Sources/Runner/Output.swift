@@ -23,6 +23,7 @@ extension Runner {
     /// The file to capture output, if we're not capturing.
     let handle: FileHandle
 
+    /// A buffer to capture output, if we're in capture mode.
     let buffer: DataBuffer?
 
     /// Return a byte stream for the given mode.
@@ -63,6 +64,7 @@ extension Runner {
       let pipe = Pipe()
       let handle = pipe.fileHandleForReading
       let buffer = DataBuffer()
+
       group.enter()
       handle.readabilityHandler = { handle in
         let data = handle.availableData
@@ -70,18 +72,13 @@ extension Runner {
         if data.isEmpty {
           debug("\(name) closing")
           handle.readabilityHandler = nil
-          Task.detached {
-            await buffer.close()
-            await debugAsync("\(name) closed - '\(String(data: await buffer.buffer, encoding: .utf8)!)'")
-            group.leave()
-          }
-
+          buffer.close()
+          debug("\(name) closed - '\(String(data: buffer.buffer, encoding: .utf8)!)'")
+          group.leave()
         }
         else {
-          Task.detached {
-            await buffer.append(data)
-            debug("\(name) appended \(String(data: data, encoding: .utf8)!)")
-          }
+          buffer.append(data)
+          debug("\(name) appended \(String(data: data, encoding: .utf8)!)")
         }
 
       }
@@ -90,13 +87,13 @@ extension Runner {
 
     /// A sequence of bytes from the stream.
     public var bytes: DataBuffer.AsyncBytes {
-      get async { await buffer?.bytes ?? DataBuffer.noBytes }
+      get async { buffer?.bytes ?? DataBuffer.noBytes }
     }
 
     /// A sequence of lines from the stream.
     public var lines: AsyncLineSequence<DataBuffer.AsyncBytes> {
       get async {
-        await buffer?.lines ?? DataBuffer.noBytes.lines
+        buffer?.lines ?? DataBuffer.noBytes.lines
       }
     }
 
