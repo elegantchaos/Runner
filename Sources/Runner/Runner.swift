@@ -14,6 +14,8 @@ open class Runner {
   /// The URL of the executable to run.
   let executable: URL
 
+  let group = DispatchGroup()
+
   /// The current working directory to run the command in.
   public var cwd: URL?
 
@@ -77,13 +79,16 @@ open class Runner {
     let stdout = Output(
       mode: stdoutMode,
       standardHandle: FileHandle.standardOutput,
-      name: "stdout"
+      name: "stdout",
+      group: group
     )
     process.standardOutput = stdout.pipe ?? stdout.handle
+
     let stderr = Output(
       mode: stderrMode,
       standardHandle: FileHandle.standardError,
-      name: "stderr"
+      name: "stderr",
+      group: group
     )
     process.standardError = stderr.pipe ?? stderr.handle
     let state = RunState.Sequence(process: process).makeStream()
@@ -101,6 +106,12 @@ open class Runner {
     process.executableURL = executable
     process.arguments = arguments
     process.environment = environment
+
+    let group = self.group
+    process.terminationHandler = { process in
+      group.wait()
+      Runner.debug("all buffers closed")
+    }
 
     do { try process.run() }
     catch { fatalError("Failed to launch \(executable).\n\n\(error)") }

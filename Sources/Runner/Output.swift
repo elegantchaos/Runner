@@ -30,20 +30,20 @@ extension Runner {
     /// If the mode is .capture, we make a new pipe and use that.
     /// If the mode is .both, we make a new pipe and set it up to forward to the standard handle.
     /// If the mode is .discard, we use /dev/null.
-    init(mode: Mode, standardHandle: FileHandle, name: String) {
+    init(mode: Mode, standardHandle: FileHandle, name: String, group: DispatchGroup) {
       switch mode { case .forward:
         pipe = nil
         handle = standardHandle
         buffer = nil
 
         case .capture:
-          let (b, p, h) = Self.setupBuffer(name: name)
+          let (b, p, h) = Self.setupBuffer(name: name, group: group)
           self.pipe = p
           self.handle = h
           self.buffer = b
 
         case .both:
-          let (b, p, h) = Self.setupBuffer(name: name, forwardingTo: standardHandle)
+          let (b, p, h) = Self.setupBuffer(name: name, group: group, forwardingTo: standardHandle)
           self.pipe = p
           self.handle = h
           self.buffer = b
@@ -57,11 +57,13 @@ extension Runner {
 
     static func setupBuffer(
       name: String,
+      group: DispatchGroup,
       forwardingTo forwardHandle: FileHandle? = nil
     ) -> (DataBuffer, Pipe, FileHandle) {
       let pipe = Pipe()
       let handle = pipe.fileHandleForReading
       let buffer = DataBuffer()
+      group.enter()
       handle.readabilityHandler = { handle in
         let data = handle.availableData
         try? forwardHandle?.write(contentsOf: data)
@@ -71,6 +73,7 @@ extension Runner {
           Task.detached {
             await buffer.close()
             await debugAsync("\(name) closed - '\(String(data: await buffer.buffer, encoding: .utf8)!)'")
+            group.leave()
           }
 
         }
