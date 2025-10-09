@@ -52,16 +52,42 @@ extension Runner {
       let s = await waitUntilExit()
       if s != .succeeded {
         debug("failed")
-        var error = await e()
-        if let e = error as? Runner.Error {
-          let d = await e.description(for: self)
-          error = Runner.WrappedError(error: e, description: d)
+
+        guard var errorToThrow = await e() else {
+          debug("no error to throw")
+          return
         }
 
-        if let error {
-          debug("throwing \(error)")
-          throw error
-        }
+
+        let runnerError = errorToThrow as? Runner.Error
+        let runnerDescription = await runnerError?.description(for: self)
+
+        #if DEBUG
+          // in debug, we always wrap the error to add the state, stdout and stderr
+          // to the description
+          let wrappedDescription = """
+            \(runnerDescription ?? errorToThrow.localizedDescription)
+
+            State was \(state).
+
+            Output was:
+            \(await stdout.string)
+
+            Error was:
+            \(await stderr.string)
+            """
+
+          errorToThrow = Runner.WrappedError(error: errorToThrow, description: wrappedDescription)
+
+        #else
+          // in release, we only wrap if it's a Runner.Error that has provided a session-specific description
+          if let runnerDescription {
+            errorToThrow = Runner.WrappedError(error: errorToThrow, description: runnerDescription)
+          }
+        #endif
+
+        debug("throwing \(errorToThrow)")
+        throw errorToThrow
       }
     }
   }

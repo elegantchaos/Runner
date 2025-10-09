@@ -17,11 +17,9 @@ extension Runner {
   /// A wrapped error that includes an expanded description,
   /// along with the original error.
   public struct WrappedError: Swift.Error, LocalizedError, Sendable {
-    public let error: Error
+    public let error: Swift.Error
     public let description: String
 
-    public var errorDescription: String? {
-      return description
-    }
+    public var errorDescription: String? { description }
   }
 }
