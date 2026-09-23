@@ -6,9 +6,12 @@
 import Foundation
 
 /// Errors conforming to this protocol can provide an async method which
-/// builds description of themselves. The function has access to the session in which
-/// the error occurred, and so can use captured output and the termination status
-/// to provide a more detailed error message.
+/// builds a description of themselves. The function has access to the session in which
+/// the error occurred, and so can use captured output, and the termination status
+/// (via `session.waitUntilExit()`), to provide a more detailed error message.
+///
+/// Conformance is optional. When `Session.throwIfFailed` is given any other error,
+/// it appends the captured stderr to the error's localized description.
 extension Runner {
   public protocol Error: Swift.Error, Sendable {
     func description(for session: Runner.Session) async -> String

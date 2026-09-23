@@ -17,16 +17,24 @@ extension Runner {
 
     /// One-shot stream of the state of the process.
     /// This will only ever yield one value, and then complete.
-    /// You can await this value if you want to wait for the process to finish.
+    ///
+    /// Prefer `waitUntilExit()`, which can be called more than once.
+    /// Iterating this stream directly consumes its only value, so don't
+    /// mix direct iteration with calls to `waitUntilExit()`.
     public let state: AsyncStream<RunState>
 
+    /// Caches the final state, so that it can be awaited more than once.
+    let exitState = ExitStateCache()
+
     /// Wait for the process to finish and return the final state.
+    ///
+    /// This can safely be called more than once, including from a
+    /// `Runner.Error`'s `description(for:)` after `throwIfFailed` has
+    /// already waited for the process.
     public func waitUntilExit() async -> RunState {
-      for await state in self.state {
-        debug("termination state was \(state)")
-        return state
-      }
-      fatalError("somehow process didn't yield a state")
+      let state = await exitState.value(from: self.state)
+      debug("termination state was \(state)")
+      return state
     }
 
     /// Check the state of the process and perform an action if it failed.
@@ -58,7 +66,6 @@ extension Runner {
           return
         }
 
-
         let runnerError = errorToThrow as? Runner.Error
         let runnerDescription = await runnerError?.description(for: self)
 
@@ -68,7 +75,7 @@ extension Runner {
           let wrappedDescription = """
             \(runnerDescription ?? errorToThrow.localizedDescription)
 
-            State was \(state).
+            State was \(s).
 
             Output was:
             \(await stdout.string)
@@ -80,9 +87,18 @@ extension Runner {
           errorToThrow = Runner.WrappedError(error: errorToThrow, description: wrappedDescription)
 
         #else
-          // in release, we only wrap if it's a Runner.Error that has provided a session-specific description
+          // in release, a Runner.Error supplies its own session-specific description;
+          // any other error gets the captured stderr appended, when there is some
           if let runnerDescription {
             errorToThrow = Runner.WrappedError(error: errorToThrow, description: runnerDescription)
+          } else {
+            let errorOutput = await stderr.string.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !errorOutput.isEmpty {
+              errorToThrow = Runner.WrappedError(
+                error: errorToThrow,
+                description: "\(errorToThrow.localizedDescription)\n\n\(errorOutput)"
+              )
+            }
           }
         #endif
 

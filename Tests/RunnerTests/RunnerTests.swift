@@ -42,6 +42,64 @@ import Testing
   for await state in session.state { #expect(state == .failed(123)) }
 }
 
+/// Waiting for the exit state more than once returns the same state each time.
+@Test func testWaitUntilExitIsRepeatable() async throws {
+  let runner = Runner(
+    for: Bundle.module.url(forResource: "non-zero-status", withExtension: "sh")!
+  )
+  let session = runner.run()
+
+  #expect(await session.waitUntilExit() == .failed(123))
+  #expect(await session.waitUntilExit() == .failed(123))
+}
+
+/// A `Runner.Error` can read the exit state while describing itself,
+/// after `throwIfFailed` has already waited for the process.
+@Test func testRunnerErrorCanReadExitState() async throws {
+  struct StateError: Runner.Error {
+    func description(for session: Runner.Session) async -> String {
+      "Exited with \(await session.waitUntilExit())."
+    }
+  }
+
+  let runner = Runner(
+    for: Bundle.module.url(forResource: "non-zero-status", withExtension: "sh")!
+  )
+  let session = runner.run()
+
+  do {
+    try await session.throwIfFailed(StateError())
+    Issue.record("Expected throwIfFailed to throw.")
+  } catch let error as Runner.WrappedError {
+    #expect(error.description.contains("Exited with failed(123)."))
+  }
+}
+
+/// Any error passed to `throwIfFailed` gets the captured stderr in its description,
+/// whether or not it conforms to `Runner.Error`.
+@Test func testPlainErrorIncludesStderr() async throws {
+  struct PlainError: LocalizedError {
+    var errorDescription: String? { "Plain failure." }
+  }
+
+  let runner = Runner(
+    for: Bundle.module.url(forResource: "non-zero-status", withExtension: "sh")!
+  )
+  let session = runner.run()
+
+  do {
+    try await session.throwIfFailed(PlainError())
+    Issue.record("Expected throwIfFailed to throw.")
+  } catch let error as Runner.WrappedError {
+    #expect(error.error is PlainError)
+    #expect(error.description.contains("Plain failure."))
+    #expect(error.description.contains("stderr"))
+    #if DEBUG
+      #expect(error.description.contains("State was failed(123)."))
+    #endif
+  }
+}
+
 /// Test with a task that outputs more than one line
 /// and takes a while to complete.
 @Test func testLongRunningStatus() async throws {
